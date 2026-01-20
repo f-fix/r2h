@@ -10,6 +10,9 @@ this is a (terrible) converter from word processor-like romaji to halfwidth kata
 - `,`: convert to ideographic comma
 - `[`: convert to left corner bracket
 - `]`: convert to right corner bracket
+- `z-`: convert to hyphen-minus
+
+ASCII backspace (Ctrl-H, 0x08) and Delete/Rubout (Ctrl-?, 0x7F) can erase parts of in-progress conversions, but it won't work in a fully intuitive way since the original input characters are not preserved. When no conversion is in progress, they will back up the is-it-kana state used to determine `-` behavior, but this only remembers the most recent 8 characters. Any other ASCII control character will cause the kana state history to be cleared, though.
 
 the rest is mostly a subset of the conversions described in https://github.com/yustier/jis-x-4063-2000
 
@@ -29,7 +32,7 @@ some of the differences from some other romaji input methods etc.:
 13. `xtu`, `xtsu`, `ltu`, or `ltsu` to get a small `tsu`/`tu`
 14. `xa`, `xya`, etc. (or `la`, `lya`, etc.) to get small `a`, `ya`, etc.
 15. repeat the first letter like `kka` to get small `tsu`/`tu` then `ka`, except `n` or vowels
-16. write `nn` or `n'` (or `xn`) if `n` or a vowel follows it to get isolated/moraic `n`
+16. write `nn` or `n'` (or `xn`/`ln`) if `n` or a vowel follows it to get isolated/moraic `n`
 17. write `ha`/`he`/`wo` for those particles, not `wa`/`e`/`o`
 18. instead of `ti`/`di` write `t'i`/`d'i` for `te`/`de` followed by small `i`
 19. there is no way to prevent conversion
