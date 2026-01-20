@@ -102,7 +102,7 @@ Input:
                 ltu
                ltsu
 ```
-Output:
+Output: (spacing/indentation has been adjusted)
 ```
     ｱ   ｲ   ｳ   ｴ   ｵ   ﾔ   ｲ   ﾕ   ｲｪ  ﾖ
     ｶ   ｷ   ｸ   ｹ   ｺ   ｷｬ  ｷｨ  ｷｭ  ｷｪ  ｷｮ
