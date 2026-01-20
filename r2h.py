@@ -14,6 +14,8 @@ this is a (terrible) converter from word processor-like romaji to halfwidth kata
 - `]`: convert to right corner bracket
 - `z-`: convert to hyphen-minus
 
+ASCII backspace (Ctrl-H, 0x08) and Delete/Rubout (Ctrl-?, 0x7F) can erase parts of in-progress conversions, but it won't work in a fully intuitive way since the original input characters are not preserved. When no conversion is in progress, they will back up the is-it-kana state used to determine `-` behavior, but this only remembers the most recent 8 characters. Any other ASCII control character will cause the kana state history to be cleared, though.
+
 the rest is mostly a subset of the conversions described in https://github.com/yustier/jis-x-4063-2000
 
 some of the differences from some other romaji input methods etc.:
@@ -42,13 +44,15 @@ some of the differences from some other romaji input methods etc.:
 
 """
 
-PUNCT_R = ".[],/"
+BACKSPACE_A = "\b"
+RUBOUT_A = "\x7f"
+PUNCT_A = ".[],/"
 PUNCT_K = "｡｢｣､･"
-MIDDOT_R = PUNCT_R[4]
+MIDDOT_A = PUNCT_A[4]
 MIDDOT_K = PUNCT_K[4]
-CHOUONPU_R = "^"
+CHOUONPU_A = "^"
 CHOUONPU_K = "ｰ"
-HYPHEN_MINUS_R = "-"
+HYPHEN_MINUS_A = "-"
 WO_K = "ｦ"
 X_R = "x"
 L_R = "l"
@@ -64,13 +68,19 @@ U_R = AIUEO_R[2]
 U_K = AIUEO_K[2]
 E_R = AIUEO_R[3]
 O_R = AIUEO_R[4]
+KSTNHMR_R = "kstnhmr"
+K_R = KSTNHMR_R[0]
 K_K = "ｶｷｸｹｺ"
+S_R = KSTNHMR_R[1]
 S_K = "ｻｼｽｾｿ"
 C_R = "c"
 C_K = K_K[0] + S_K[1] + K_K[2] + S_K[3] + K_K[4]
+T_R = KSTNHMR_R[2]
 T_K = "ﾀﾁﾂﾃﾄ"
 TU_K = T_K[2]
+N_R = KSTNHMR_R[3]
 N_K = "ﾅﾆﾇﾈﾉ"
+H_R = KSTNHMR_R[4]
 H_K = "ﾊﾋﾌﾍﾎ"
 HU_K = H_K[2]
 M_K = "ﾏﾐﾑﾒﾓ"
@@ -78,14 +88,8 @@ Y_R = "y"
 YAYUYO_K = "ﾔﾕﾖ"
 R_K = "ﾗﾘﾙﾚﾛ"
 YAIYUEYO_K = YAYUYO_K[0] + AIUEO_K[1] + YAYUYO_K[1] + AIUEO_K[3] + YAYUYO_K[2]
-KSTNHMR_R = "kstnhmr"
-K_R = KSTNHMR_R[0]
-S_R = KSTNHMR_R[1]
-T_R = KSTNHMR_R[2]
-N_R = KSTNHMR_R[3]
-H_R = KSTNHMR_R[4]
-XKSTNHMR_R = X_R + KSTNHMR_R
-XKSTNHMR_K = [X_K, K_K, S_K, T_K, N_K, H_K, M_K, R_K]
+XLKSTNHMR_R = X_R + L_R + KSTNHMR_R
+XLKSTNHMR_K = [X_K, X_K, K_K, S_K, T_K, N_K, H_K, M_K, R_K]
 GZDB_R = "gzdb"
 G_R = GZDB_R[0]
 Z_R = GZDB_R[1]
@@ -95,18 +99,21 @@ WA_K = "ﾜ"
 W_R = "w"
 NN_K = "ﾝ"
 DAKUTEN_K = "ﾞ"
-DAKUTEN_R = "z;"
+DAKUTEN_R = Z_R + ";"
 HANDAKUTEN_K = "ﾟ"
-HANDAKUTEN_R = "z:"
+HANDAKUTEN_R = Z_R + ":"
 V_R = "v"
 Q_R = "q"
 J_R = "j"
 F_R = "f"
 P_R = "p"
-YWQCJFPVL_R = Y_R + W_R + Q_R + C_R + J_R + F_R + P_R + V_R + L_R
-LEAD_R = XKSTNHMR_R + GZDB_R + YWQCJFPVL_R
+YWQCJFPV_R = Y_R + W_R + Q_R + C_R + J_R + F_R + P_R + V_R
+LEAD_R = XLKSTNHMR_R + GZDB_R + YWQCJFPV_R
 KSTNHMRGZDBPJ_R = KSTNHMR_R + GZDB_R + P_R + J_R
-APOSTROPHE_R = "'"
+APOSTROPHE_A = "'"
+
+ALL_R = AIUEO_R + XLKSTNHMR_R + GZDB_R + YWQCJFPV_R
+assert sorted(ALL_R) == [chr(cc) for cc in range(ord("a"), 1 + ord("z"))]
 
 ALL_K = (
     PUNCT_K
@@ -143,9 +150,16 @@ def r2k(*, ibuf, state, obuf, flags, getch):
                 ch, ibuf = ibuf[:1], ibuf[1:]
             else:
                 ch = getch()
+            if ch in (BACKSPACE_A, RUBOUT_A):
+                if state:
+                    state = state[:-1]
+                    continue
+                else:
+                    flags = (flags & 0x7F) << 1
+                    return ch, ibuf, state, obuf, flags
             aiueo_idx = AIUEO_R.find(ch.lower()) if ch else -1
-            punct_idx = PUNCT_R.find(ch.lower()) if ch else -1
-            if (state.lower() == N_R) and (ch.lower() in (N_R, APOSTROPHE_R)):
+            punct_idx = PUNCT_A.find(ch.lower()) if ch else -1
+            if (state.lower() == N_R) and (ch.lower() in (N_R, APOSTROPHE_A)):
                 ch, state = NN_K, EMPTY_STATE
             elif state.lower() in (X_R, L_R) and ch.lower() == N_R:
                 ch, state = NN_K, EMPTY_STATE
@@ -159,20 +173,20 @@ def r2k(*, ibuf, state, obuf, flags, getch):
                 ch, state = X_K[aiueo_idx], EMPTY_STATE
                 aiueo_idx = -1
             elif (state.lower() in (W_R, P_R) and ch.lower() == H_R) or (
-                state.lower() in (T_R, D_R) and ch.lower() == APOSTROPHE_R
+                state.lower() in (T_R, D_R) and ch.lower() == APOSTROPHE_A
             ):
                 state += ch
                 continue
             elif (
-                state.lower() in (T_R + APOSTROPHE_R, D_R + APOSTROPHE_R)
+                state.lower() in (T_R + APOSTROPHE_A, D_R + APOSTROPHE_A)
                 and ch.lower() == U_R
             ):
                 ibuf = state[:1] + O_R + X_R + ch + ibuf
                 state = EMPTY_STATE
                 continue
             elif state.lower() in (
-                T_R + APOSTROPHE_R,
-                D_R + APOSTROPHE_R,
+                T_R + APOSTROPHE_A,
+                D_R + APOSTROPHE_A,
             ) and ch.lower() in (I_R, Y_R):
                 ibuf = state[:1] + E_R + X_R + ch + ibuf
                 state = EMPTY_STATE
@@ -187,9 +201,9 @@ def r2k(*, ibuf, state, obuf, flags, getch):
                 ibuf = state[:1] + U_R + X_R + ch + ibuf
                 state = EMPTY_STATE
                 continue
-            elif state and state.lower() in XKSTNHMR_R and (aiueo_idx >= 0):
+            elif state and state.lower() in XLKSTNHMR_R and (aiueo_idx >= 0):
                 ch, state = (
-                    XKSTNHMR_K[XKSTNHMR_R.index(state.lower())][aiueo_idx],
+                    XLKSTNHMR_K[XLKSTNHMR_R.index(state.lower())][aiueo_idx],
                     EMPTY_STATE,
                 )
                 aiueo_idx = -1
@@ -315,9 +329,9 @@ def r2k(*, ibuf, state, obuf, flags, getch):
                     iueo_idx, punct_idx = -1, -1
                 elif (state + ch).lower() == DAKUTEN_R:
                     ch, state = DAKUTEN_K, EMPTY_STATE
-                elif ch == MIDDOT_R:
+                elif ch == MIDDOT_A:
                     ch, state = MIDDOT_K, EMPTY_STATE
-                elif ch == HYPHEN_MINUS_R:
+                elif ch == HYPHEN_MINUS_A:
                     flags &= 0x7F
                     state = EMPTY_STATE
             if state:
@@ -329,16 +343,19 @@ def r2k(*, ibuf, state, obuf, flags, getch):
                 assert state == EMPTY_STATE
                 if punct_idx >= 0:
                     ch = PUNCT_K[punct_idx]
-                elif ch == CHOUONPU_R:
+                elif ch == CHOUONPU_A:
                     ch = CHOUONPU_K
                 elif aiueo_idx >= 0:
                     ch = AIUEO_K[aiueo_idx]
-                elif (ch == HYPHEN_MINUS_R) and (flags & 0x80):
+                elif (ch == HYPHEN_MINUS_A) and (flags & 0x80):
                     ch = CHOUONPU_K
                 elif ch and (ch.lower() in LEAD_R):
                     state = ch
                     continue
-        flags = (0x80 if (ch in ALL_K) else 0) | (flags >> 1)
+        if ch and ord(ch) < ord(" ") and ch != BACKSPACE_A:
+            flags = 0
+        else:
+            flags = (0x80 if (ch and (ch in ALL_K)) else 0) | (flags >> 1)
         return ch, ibuf, state, obuf, flags
 
 
@@ -638,6 +655,65 @@ def smoketest():
     assert r2ks("I^su") == "ｲｰｽ"
     assert r2ks("a-123") == "ｱｰ123"
     assert r2ks("az-123") == "ｱ-123"
+    assert r2ks("\b") == "\b"
+    assert r2ks("\x7f") == "\x7f"
+    assert r2ks("a\b-") == "ｱ\b-"
+    assert r2ks("a\x7f-") == "ｱ\x7f-"
+    assert r2ks("a -") == "ｱ -"
+    assert r2ks("a \b-") == "ｱ \bｰ"
+    assert r2ks("a \x7f-") == "ｱ \x7fｰ"
+    assert r2ks("a\n\b-") == "ｱ\n\b-"
+    assert r2ks("a\r\x7f-") == "ｱ\r\x7f-"
+    assert r2ks("k\ba\b-") == "ｱ\b-"
+    assert r2ks("k\ba\x7f-") == "ｱ\x7f-"
+    assert r2ks("k\ba -") == "ｱ -"
+    assert r2ks("k\ba \b-") == "ｱ \bｰ"
+    assert r2ks("k\ba \x7f-") == "ｱ \x7fｰ"
+    assert r2ks("ak\b\b-") == "ｱ\b-"
+    assert r2ks("ak\x7fk\x7f-") == "ｱｰ"
+    assert r2ks("a k\b-") == "ｱ -"
+    assert r2ks("a k\b\b-") == "ｱ \bｰ"
+    assert r2ks("a k\x7f\x7f-") == "ｱ \x7fｰ"
+    assert r2ks("k\ba\bk\b-") == "ｱ\b-"
+    assert r2ks("k\ba\x7fk\x7f-") == "ｱ\x7f-"
+    assert r2ks("k\ba k\b-") == "ｱ -"
+    assert r2ks("k\ba \bk\b-") == "ｱ \bｰ"
+    assert r2ks("k\ba \x7fk\x7f-") == "ｱ \x7fｰ"
+    assert r2ks("ki") == "ｷ"
+    assert r2ks("kya") == "ｷｬ"
+    assert r2ks("kyu") == "ｷｭ"
+    assert r2ks("ya") == "ﾔ"
+    assert r2ks("ki\b") == "ｷ\b"
+    assert r2ks("kya\b") == "ｷｬ\b"
+    assert r2ks("kyu\b") == "ｷｭ\b"
+    assert r2ks("ya\b") == "ﾔ\b"
+    assert r2ks("\bki") == "\bｷ"
+    assert r2ks("\bkya") == "\bｷｬ"
+    assert r2ks("\bkyu") == "\bｷｭ"
+    assert r2ks("\bya") == "\bﾔ"
+    assert r2ks("\bki\b") == "\bｷ\b"
+    assert r2ks("\bkya\b") == "\bｷｬ\b"
+    assert r2ks("\bkyu\b") == "\bｷｭ\b"
+    assert r2ks("\bya\b") == "\bﾔ\b"
+    assert r2ks("k\bi") == "ｲ"
+    assert r2ks("k\bya") == "ﾔ"
+    assert r2ks("ky\ba") == "ｷｧ"  # probably surprising/wrong
+    assert r2ks("k\byu") == "ﾕ"
+    assert r2ks("ky\bu") == "ｷｩ"  # probably surprising/wrong
+    assert r2ks("ky\bya") == "ｷｬ"
+    assert r2ks("ky\byu") == "ｷｭ"
+    assert r2ks("ky\b\ba") == "ｷｱ"  # probably surprising/wrong
+    assert r2ks("ky\b\bu") == "ｷｳ"  # probably surprising/wrong
+    assert r2ks("ky\b\bya") == "ｷﾔ"  # probably surprising/wrong
+    assert r2ks("ky\b\byu") == "ｷﾕ"  # probably surprising/wrong
+    assert r2ks("ﾌ-") == "ﾌｰ"
+    assert r2ks("fu-") == "ﾌｰ"
+    assert r2ks("f\b-") == "-"
+    assert r2ks("f\bu") == "ｳ"
+    assert r2ks("qu") == "ｸ"
+    assert r2ks("q\bu") == "ｳ"
+    assert r2ks("kwu") == "ｸｩ"
+    assert r2ks("kw\bu") == "ｸｳ"  # probably surprising/wrong
 
 
 smoketest()
