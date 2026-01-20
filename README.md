@@ -1,39 +1,39 @@
 # About
 this is a (terrible) converter from word processor-like romaji to halfwidth katakana
 
-- => convert to kana prolonged sound mark (only immediately after kana!)
-^ => convert to kana prolonged sound mark
-z: => convert to kana semi-voiced sound mark
-z; => convert to kana voiced sound mark
-z/ => convert to kana middle dot
-. => convert to kana full stop
-, => convert to kana comma
-[ => convert to kana opening quotation mark
-] => convert to kana closing quotation mark
+- `-`: convert to chouonpu (only immediately after kana!)
+- `^`: convert to chouonpu
+- `z:`: convert to handakuten
+- `z;`: convert to dakuten
+- `z/`: convert to middle dot
+- `.`: convert to ideographic full stop
+- `,`: convert to ideographic comma
+- `[`: convert to left corner bracket
+- `]`: convert to right corner bracket
 
 the rest is mostly a subset of the conversions described in https://github.com/yustier/jis-x-4063-2000
 
 some of the differences from some other romaji input methods etc.:
 1. no hiragana, since that does not exist in the halfwidth kana
-2. no wyi and wye, since those do not exist in the halfwidth kana
-3. no xwa, since that does not exist in the halfwidth kana
-4. no xke and xka, since those do not exist in the halfwidth kana
-5. - is only converted when it immediately follows kana, use ^ in other places
-6. use xaxa/lala, xyaxya/lyalya etc. to repeat small a/ya etc.; xxa/lla and xxya/llya prefix with small tsu/tu instead
+2. no `wyi` and `wye`, since those do not exist in the halfwidth kana
+3. no `xwa`, since that does not exist in the halfwidth kana
+4. no `xke` and `xka`, since those do not exist in the halfwidth kana
+5. `-` is only converted when it immediately follows kana, use `^` in other places
+6. use `xaxa`/`lala`, `xyaxya`/`lyalya` etc. to repeat small `a`/`ya` etc.
 7. no visual feedback during conversion
 8. no kanji input, no other punctuation or special symbol input
 9. instead of tchi etc. write cchi/tti etc.
-10. instead of mma, mbu, mpu etc. write nma, nbu, npu etc.
-11. instead of dzu write du for the voiced version of tsu/tu; zu is voiced su
-12. instead of tu/du write t'u/d'u for to/do followed by small u
-13. xtu, xtsu, ltu, or ltsu to get a small tsu/tu
-14. xa, xya, etc. (or la, lya, etc.) to get small a, ya, etc.
-15. repeat the first letter like kka to get small tsu/tu then ka, except n or vowels
-16. write nn or n' (or xn) if n or a vowel follows it to get isolated/moraic n
-17. write ha/he/wo for those particles, not wa/e/o
-18. instead of ti/di write t'i/d'i for te/de followed by small i
+10. instead of `mma`, `mbu`, `mpu` etc. write `nma`, `nbu`, `npu` etc.
+11. instead of `dzu` write `du` for the voiced version of `tsu`/`tu`; `zu` is voiced `su`
+12. instead of `tu`/`du` write `t'u`/`d'u` for `to`/`do` followed by small `u`
+13. `xtu`, `xtsu`, `ltu`, or `ltsu` to get a small `tsu`/`tu`
+14. `xa`, `xya`, etc. (or `la`, `lya`, etc.) to get small `a`, `ya`, etc.
+15. repeat the first letter like `kka` to get small `tsu`/`tu` then `ka`, except `n` or vowels
+16. write `nn` or `n'` (or `xn`) if `n` or a vowel follows it to get isolated/moraic `n`
+17. write `ha`/`he`/`wo` for those particles, not `wa`/`e`/`o`
+18. instead of `ti`/`di` write `t'i`/`d'i` for `te`/`de` followed by small `i`
 19. there is no way to prevent conversion
-20. instead of tyu/dyu write t'yu/d'yu for te/de followed by small yu
+20. instead of `tyu`/`dyu` write `t'yu`/`d'yu` for `te`/`de` followed by small `yu`
 21. letter case is not meaningful or preserved
 22. conversion failures may produce surprising garbage; behavior in unspecified cases may be surprising
 
