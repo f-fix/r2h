@@ -12,6 +12,7 @@ this is a (terrible) converter from word processor-like romaji to halfwidth kata
 - `,`: convert to ideographic comma
 - `[`: convert to left corner bracket
 - `]`: convert to right corner bracket
+- `z-`: convert to hyphen-minus
 
 the rest is mostly a subset of the conversions described in https://github.com/yustier/jis-x-4063-2000
 
@@ -31,7 +32,7 @@ some of the differences from some other romaji input methods etc.:
 13. `xtu`, `xtsu`, `ltu`, or `ltsu` to get a small `tsu`/`tu`
 14. `xa`, `xya`, etc. (or `la`, `lya`, etc.) to get small `a`, `ya`, etc.
 15. repeat the first letter like `kka` to get small `tsu`/`tu` then `ka`, except `n` or vowels
-16. write `nn` or `n'` (or `xn`) if `n` or a vowel follows it to get isolated/moraic `n`
+16. write `nn` or `n'` (or `xn`/`ln`) if `n` or a vowel follows it to get isolated/moraic `n`
 17. write `ha`/`he`/`wo` for those particles, not `wa`/`e`/`o`
 18. instead of `ti`/`di` write `t'i`/`d'i` for `te`/`de` followed by small `i`
 19. there is no way to prevent conversion
@@ -41,256 +42,303 @@ some of the differences from some other romaji input methods etc.:
 
 """
 
-PUNCT_R = ".[],/^"
-PUNCT_K = "｡｢｣､･ｰ"
-MIDDOT_K = "･"
+PUNCT_R = ".[],/"
+PUNCT_K = "｡｢｣､･"
+MIDDOT_R = PUNCT_R[4]
+MIDDOT_K = PUNCT_K[4]
+CHOUONPU_R = "^"
 CHOUONPU_K = "ｰ"
+HYPHEN_MINUS_R = "-"
 WO_K = "ｦ"
+X_R = "x"
+L_R = "l"
 X_K = "ｧｨｩｪｫ"
-XYAIYUEYO_K = "ｬｨｭｪｮ"
+XYAYUYO_K = "ｬｭｮ"
+XYAIYUEYO_K = XYAYUYO_K[0] + X_K[1] + XYAYUYO_K[1] + X_K[3] + XYAYUYO_K[2]
 XTU_K = "ｯ"
-AUO_R = "auo"
 AIUEO_R = "aiueo"
 AIUEO_K = "ｱｲｳｴｵ"
-I_K = "ｲ"
-U_K = "ｳ"
-XKSTNHMR_R = "xkstnhmr"
-GZDB_R = "gzdb"
+A_R = AIUEO_R[0]
+I_R = AIUEO_R[1]
+U_R = AIUEO_R[2]
+U_K = AIUEO_K[2]
+E_R = AIUEO_R[3]
+O_R = AIUEO_R[4]
 K_K = "ｶｷｸｹｺ"
-C_K = "ｶｼｸｾｺ"
 S_K = "ｻｼｽｾｿ"
+C_R = "c"
+C_K = K_K[0] + S_K[1] + K_K[2] + S_K[3] + K_K[4]
 T_K = "ﾀﾁﾂﾃﾄ"
-TU_K = "ﾂ"
+TU_K = T_K[2]
 N_K = "ﾅﾆﾇﾈﾉ"
 H_K = "ﾊﾋﾌﾍﾎ"
-HU_K = "ﾌ"
+HU_K = H_K[2]
 M_K = "ﾏﾐﾑﾒﾓ"
-YAIYUEYO_K = "ﾔｲﾕｴﾖ"
+Y_R = "y"
+YAYUYO_K = "ﾔﾕﾖ"
 R_K = "ﾗﾘﾙﾚﾛ"
+YAIYUEYO_K = YAYUYO_K[0] + AIUEO_K[1] + YAYUYO_K[1] + AIUEO_K[3] + YAYUYO_K[2]
+KSTNHMR_R = "kstnhmr"
+K_R = KSTNHMR_R[0]
+S_R = KSTNHMR_R[1]
+T_R = KSTNHMR_R[2]
+N_R = KSTNHMR_R[3]
+H_R = KSTNHMR_R[4]
+XKSTNHMR_R = X_R + KSTNHMR_R
 XKSTNHMR_K = [X_K, K_K, S_K, T_K, N_K, H_K, M_K, R_K]
+GZDB_R = "gzdb"
+G_R = GZDB_R[0]
+Z_R = GZDB_R[1]
+D_R = GZDB_R[2]
 KSTH_K = [K_K, S_K, T_K, H_K]
 WA_K = "ﾜ"
+W_R = "w"
 NN_K = "ﾝ"
 DAKUTEN_K = "ﾞ"
+DAKUTEN_R = "z;"
 HANDAKUTEN_K = "ﾟ"
+HANDAKUTEN_R = "z:"
+V_R = "v"
+Q_R = "q"
+J_R = "j"
+F_R = "f"
+P_R = "p"
+YWQCJFPVL_R = Y_R + W_R + Q_R + C_R + J_R + F_R + P_R + V_R + L_R
+LEAD_R = XKSTNHMR_R + GZDB_R + YWQCJFPVL_R
+KSTNHMRGZDBPJ_R = KSTNHMR_R + GZDB_R + P_R + J_R
+APOSTROPHE_R = "'"
 
-FLAG_KANA = "FLAG_KANA"
+ALL_K = (
+    PUNCT_K
+    + WO_K
+    + X_K
+    + XYAYUYO_K
+    + XTU_K
+    + CHOUONPU_K
+    + AIUEO_K
+    + K_K
+    + S_K
+    + T_K
+    + N_K
+    + H_K
+    + M_K
+    + YAYUYO_K
+    + R_K
+    + WA_K
+    + NN_K
+    + DAKUTEN_K
+    + HANDAKUTEN_K
+)
+assert ALL_K == bytes(range(0xA1, 0xE0)).decode("cp932")
+
+EMPTY_STATE = ""
 
 
 def r2k(*, ibuf, state, obuf, flags, getch):
     while True:
-        # print(dict(ibuf=ibuf, state=state, obuf=obuf, flags=flags))
         if obuf:
             ch, obuf = obuf[:1], obuf[1:]
-            # print(dict(ch=ch, obuf=obuf))
         else:
             if ibuf:
                 ch, ibuf = ibuf[:1], ibuf[1:]
-                # print(dict(ch=ch, ibuf=ibuf))
             else:
                 ch = getch()
-                # print(dict(ch=ch))
             aiueo_idx = AIUEO_R.find(ch.lower()) if ch else -1
             punct_idx = PUNCT_R.find(ch.lower()) if ch else -1
-            if (state.lower() == "n") and (ch.lower() in ("n", "'")):
-                ch, state = NN_K, ""
-                flags = {FLAG_KANA}
-            elif (state.lower() == "x") and ch.lower() == "n":
-                ch, state = NN_K, ""
-                flags = {FLAG_KANA}
-            elif (
-                ch
-                and ch.lower() == state.lower()
-                and (ch.lower() in XKSTNHMR_R + GZDB_R + "ywqcjfpvl")
-            ):
+            if (state.lower() == N_R) and (ch.lower() in (N_R, APOSTROPHE_R)):
+                ch, state = NN_K, EMPTY_STATE
+            elif state.lower() in (X_R, L_R) and ch.lower() == N_R:
+                ch, state = NN_K, EMPTY_STATE
+            elif ch and ch.lower() == state.lower() and (ch.lower() in LEAD_R):
                 obuf = XTU_K
                 continue
-            elif (state.lower() in ("xy", "ly")) and (aiueo_idx >= 0):
-                ch, state = XYAIYUEYO_K[aiueo_idx], ""
-                flags = {FLAG_KANA}
+            elif (state.lower() in (X_R + Y_R, L_R + Y_R)) and (aiueo_idx >= 0):
+                ch, state = XYAIYUEYO_K[aiueo_idx], EMPTY_STATE
                 aiueo_idx = -1
-            elif (state.lower() in ("x", "l")) and (aiueo_idx >= 0):
-                ch, state = X_K[aiueo_idx], ""
-                flags = {FLAG_KANA}
+            elif (state.lower() in (X_R, L_R)) and (aiueo_idx >= 0):
+                ch, state = X_K[aiueo_idx], EMPTY_STATE
                 aiueo_idx = -1
-            elif (state.lower() in ("w", "p") and ch.lower() == "h") or (
-                state.lower() in ("t", "d") and ch.lower() == "'"
+            elif (state.lower() in (W_R, P_R) and ch.lower() == H_R) or (
+                state.lower() in (T_R, D_R) and ch.lower() == APOSTROPHE_R
             ):
-                ch, state = "", state + ch
+                state += ch
                 continue
-            elif state.lower() in ("t'", "d'") and ch.lower() == "u":
-                ibuf = state[:1] + "ox" + ch + ibuf
-                state = ""
+            elif (
+                state.lower() in (T_R + APOSTROPHE_R, D_R + APOSTROPHE_R)
+                and ch.lower() == U_R
+            ):
+                ibuf = state[:1] + O_R + X_R + ch + ibuf
+                state = EMPTY_STATE
                 continue
-            elif state.lower() in ("t'", "d'") and ch.lower() in ("i", "y"):
-                ibuf = state[:1] + "ex" + ch + ibuf
-                state = ""
+            elif state.lower() in (
+                T_R + APOSTROPHE_R,
+                D_R + APOSTROPHE_R,
+            ) and ch.lower() in (I_R, Y_R):
+                ibuf = state[:1] + E_R + X_R + ch + ibuf
+                state = EMPTY_STATE
                 continue
-            elif state.lower() == "wh" and aiueo_idx >= 0:
-                state = ""
-                if ch.lower() != "u":
-                    ibuf = "x" + ch + ibuf
-                ibuf = "u" + ibuf
+            elif state.lower() == W_R + H_R and aiueo_idx >= 0:
+                if ch.lower() != U_R:
+                    ibuf = X_R + ch + ibuf
+                ibuf = U_R + ibuf
+                state = EMPTY_STATE
                 continue
-            elif state.lower() == "ph" and aiueo_idx >= 0:
-                state = ""
-                ibuf = "pux" + ch + ibuf
+            elif state.lower() == P_R + H_R and aiueo_idx >= 0:
+                ibuf = state[:1] + U_R + X_R + ch + ibuf
+                state = EMPTY_STATE
                 continue
             elif state and state.lower() in XKSTNHMR_R and (aiueo_idx >= 0):
-                ch, state = XKSTNHMR_K[XKSTNHMR_R.index(state.lower())][aiueo_idx], ""
-                flags = {FLAG_KANA}
+                ch, state = (
+                    XKSTNHMR_K[XKSTNHMR_R.index(state.lower())][aiueo_idx],
+                    EMPTY_STATE,
+                )
                 aiueo_idx = -1
-            elif state.lower() == "c" and (aiueo_idx >= 0):
-                ch, state = C_K[aiueo_idx], ""
-                flags = {FLAG_KANA}
+            elif state.lower() == C_R and (aiueo_idx >= 0):
+                ch, state = C_K[aiueo_idx], EMPTY_STATE
                 aiueo_idx = -1
-            elif state.lower() == "y" and (aiueo_idx >= 0):
-                if ch.lower() == "e":
-                    ibuf = "ix" + ch + ibuf
-                    state = ""
+            elif state.lower() == Y_R and (aiueo_idx >= 0):
+                if ch.lower() == E_R:
+                    ibuf = I_R + X_R + ch + ibuf
+                    state = EMPTY_STATE
                     continue
-                ch, state = YAIYUEYO_K[aiueo_idx], ""
-                flags = {FLAG_KANA}
+                ch, state = YAIYUEYO_K[aiueo_idx], EMPTY_STATE
                 aiueo_idx = -1
-            elif state.lower() == "w" and (aiueo_idx >= 0):
-                if ch.lower() == "a":
+            elif state.lower() == W_R and (aiueo_idx >= 0):
+                if ch.lower() == A_R:
                     ch = WA_K
-                elif ch.lower() == "o":
+                elif ch.lower() == O_R:
                     ch = WO_K
                 else:
-                    if ch.lower() != "u":
-                        ibuf = "x" + ch + ibuf
+                    if ch.lower() != U_R:
+                        ibuf = X_R + ch + ibuf
                     ch = U_K
-                state = ""
-                flags = {FLAG_KANA}
+                state = EMPTY_STATE
                 aiueo_idx = -1
             elif state and state.lower() in GZDB_R and (aiueo_idx >= 0):
-                ch, state = KSTH_K[GZDB_R.index(state.lower())][aiueo_idx], ""
-                flags = {FLAG_KANA}
+                ch, state = KSTH_K[GZDB_R.index(state.lower())][aiueo_idx], EMPTY_STATE
                 aiueo_idx = -1
                 ibuf = DAKUTEN_K + ibuf
-            elif state.lower() == "p" and (aiueo_idx >= 0):
-                ch, state = H_K[aiueo_idx], ""
-                flags = {FLAG_KANA}
+            elif state.lower() == P_R and (aiueo_idx >= 0):
+                ch, state = H_K[aiueo_idx], EMPTY_STATE
                 aiueo_idx = -1
                 ibuf = HANDAKUTEN_K + ibuf
-            elif state.lower() == "c" and ch.lower() == "y":
-                ibuf = "ty" + ibuf
-                state = ""
+            elif state.lower() == C_R and ch.lower() == Y_R:
+                ibuf = T_R + Y_R + ibuf
+                state = EMPTY_STATE
                 continue
             elif (
-                state.lower() in ("k", "q", "g", "c", "s", "z", "h", "f")
-                and ch.lower() == "w"
+                state.lower() in (K_R, Q_R, G_R, C_R, S_R, Z_R, H_R, F_R)
+                and ch.lower() == W_R
             ):
-                ibuf = state + "ux" + ibuf
-                state = ""
+                ibuf = state + U_R + X_R + ibuf
+                state = EMPTY_STATE
                 continue
-            elif state.lower() in ("t", "d") and ch.lower() == "w":
-                ibuf = state + "ox" + ibuf
-                state = ""
+            elif state.lower() in (T_R, D_R) and ch.lower() == W_R:
+                ibuf = state + O_R + X_R + ibuf
+                state = EMPTY_STATE
                 continue
-            elif state and state.lower() in "kstnhmrgzdbpj" and ch.lower() == "y":
-                ibuf = state + "ixy" + ibuf
-                state = ""
+            elif state and state.lower() in KSTNHMRGZDBPJ_R and ch.lower() == Y_R:
+                ibuf = state + I_R + X_R + Y_R + ibuf
+                state = EMPTY_STATE
                 continue
-            elif state and state.lower() in "qfv" and ch.lower() == "y":
-                ibuf = state + "uxy" + ibuf
-                state = ""
+            elif state and state.lower() in Q_R + F_R + V_R and ch.lower() == Y_R:
+                ibuf = state + U_R + X_R + Y_R + ibuf
+                state = EMPTY_STATE
                 continue
-            elif state.lower() == "n":
+            elif state.lower() == N_R:
                 ibuf = ch + ibuf
-                ch, state = NN_K, ""
-                flags = {FLAG_KANA}
+                ch, state = NN_K, EMPTY_STATE
             elif (
-                ((state.lower() in ("x", "l")) and ch.lower() in ("y", "t"))
-                or ((state.lower() in ("xt", "lt")) and ch.lower() == "s")
-                or (state.lower() in ("c", "s", "t", "d") and ch.lower() == "h")
-                or (state.lower() == "t" and ch.lower() == "s")
+                ((state.lower() in (X_R, L_R)) and ch.lower() in (Y_R, T_R))
+                or ((state.lower() in (X_R + T_R, L_R + T_R)) and ch.lower() == S_R)
+                or (state.lower() in (C_R, S_R, T_R, D_R) and ch.lower() == H_R)
+                or (state.lower() == T_R and ch.lower() == S_R)
             ):
-                ch, state = "", state + ch
+                state += ch
                 continue
-            elif state.lower() == "sh" and aiueo_idx >= 0:
-                state = ""
-                if ch.lower() != "i":
-                    ibuf = "xy" + ch + ibuf
-                ibuf = "si" + ibuf
+            elif state.lower() == S_R + H_R and aiueo_idx >= 0:
+                if ch.lower() != I_R:
+                    ibuf = X_R + Y_R + ch + ibuf
+                ibuf = state[:1] + I_R + ibuf
+                state = EMPTY_STATE
                 continue
-            elif state.lower() == "ts" and aiueo_idx >= 0:
-                state = ""
-                if ch.lower() != "u":
-                    ibuf = "x" + ch + ibuf
-                ibuf = "tu" + ibuf
+            elif state.lower() == T_R + S_R and aiueo_idx >= 0:
+                if ch.lower() != U_R:
+                    ibuf = X_R + ch + ibuf
+                ibuf = state[:1] + U_R + ibuf
+                state = EMPTY_STATE
                 continue
-            elif state.lower() in ("th", "dh") and aiueo_idx >= 0:
-                ibuf = state[:1] + "exy" + ch + ibuf
-                state = ""
+            elif state.lower() in (T_R + H_R, D_R + H_R) and aiueo_idx >= 0:
+                ibuf = state[:1] + E_R + X_R + Y_R + ch + ibuf
+                state = EMPTY_STATE
                 continue
-            elif state.lower() == "ch" and aiueo_idx >= 0:
-                state = ""
-                if ch.lower() != "i":
-                    ibuf = "xy" + ch + ibuf
-                ibuf = "ti" + ibuf
+            elif state.lower() == C_R + H_R and aiueo_idx >= 0:
+                if ch.lower() != I_R:
+                    ibuf = X_R + Y_R + ch + ibuf
+                ibuf = T_R + I_R + ibuf
+                state = EMPTY_STATE
                 continue
-            elif state.lower() == "q" and aiueo_idx >= 0:
-                state = ""
-                if ch.lower() != "u":
-                    ibuf = "x" + ch + ibuf
-                ibuf = "ku" + ibuf
+            elif state.lower() == Q_R and aiueo_idx >= 0:
+                if ch.lower() != U_R:
+                    ibuf = X_R + ch + ibuf
+                ibuf = K_R + U_R + ibuf
+                state = EMPTY_STATE
                 continue
-            elif state.lower() == "j" and aiueo_idx >= 0:
-                state = ""
-                if ch.lower() != "i":
-                    ibuf = "xy" + ch + ibuf
-                ibuf = "zi" + ibuf
+            elif state.lower() == J_R and aiueo_idx >= 0:
+                if ch.lower() != I_R:
+                    ibuf = X_R + Y_R + ch + ibuf
+                ibuf = Z_R + I_R + ibuf
+                state = EMPTY_STATE
                 continue
-            elif state.lower() == "f" and aiueo_idx >= 0:
-                state = ""
-                if ch.lower() != "u":
-                    ibuf = "x" + ch + ibuf
-                ibuf = "hu" + ibuf
+            elif state.lower() == F_R and aiueo_idx >= 0:
+                if ch.lower() != U_R:
+                    ibuf = X_R + ch + ibuf
+                ibuf = H_R + U_R + ibuf
+                state = EMPTY_STATE
                 continue
-            elif state.lower() == "v" and aiueo_idx >= 0:
-                state = ""
-                if ch.lower() != "u":
-                    ibuf = "x" + ch + ibuf
-                ibuf = "uz;" + ibuf
+            elif state.lower() == V_R and aiueo_idx >= 0:
+                if ch.lower() != U_R:
+                    ibuf = X_R + ch + ibuf
+                ibuf = U_R + DAKUTEN_R + ibuf
+                state = EMPTY_STATE
                 continue
-            elif state.lower() in ("xt", "lt", "xts", "lts") and ch.lower() == "u":
-                ch, state = XTU_K, ""
-                flags = {FLAG_KANA}
+            elif (
+                state.lower()
+                in (X_R + T_R, L_R + T_R, X_R + T_R + S_R, L_R + T_R + S_R)
+                and ch.lower() == U_R
+            ):
+                ch, state = XTU_K, EMPTY_STATE
                 aiueo_idx = -1
-            elif state.lower() == "z":
-                if ch == ":":
-                    ch, state = HANDAKUTEN_K, ""
-                    flags = {FLAG_KANA}
+            elif state.lower() == Z_R:
+                if (state + ch).lower() == HANDAKUTEN_R:
+                    ch, state = HANDAKUTEN_K, EMPTY_STATE
                     iueo_idx, punct_idx = -1, -1
-                elif ch == ";":
-                    ch, state = DAKUTEN_K, ""
-                    flags = {FLAG_KANA}
-                elif ch == "/":
-                    ch, state = MIDDOT_K, ""
-                    flags = {FLAG_KANA}
+                elif (state + ch).lower() == DAKUTEN_R:
+                    ch, state = DAKUTEN_K, EMPTY_STATE
+                elif ch == MIDDOT_R:
+                    ch, state = MIDDOT_K, EMPTY_STATE
+                elif ch == HYPHEN_MINUS_R:
+                    flags &= 0x7F
+                    state = EMPTY_STATE
             if state:
                 obuf += state
                 ibuf += ch
-                state = ""
-                flags = set()
+                state = EMPTY_STATE
                 ch, obuf = obuf[:1], obuf[1:]
             else:
-                assert state == ""
+                assert state == EMPTY_STATE
                 if punct_idx >= 0:
                     ch = PUNCT_K[punct_idx]
-                    flags = {FLAG_KANA}
+                elif ch == CHOUONPU_R:
+                    ch = CHOUONPU_K
                 elif aiueo_idx >= 0:
                     ch = AIUEO_K[aiueo_idx]
-                    flags = {FLAG_KANA}
-                elif (ch == "-") and (FLAG_KANA in flags):
+                elif (ch == HYPHEN_MINUS_R) and (flags & 0x80):
                     ch = CHOUONPU_K
-                elif ch and (ch.lower() in XKSTNHMR_R + GZDB_R + "ywqcjfpvl"):
-                    ch, state = "", ch
+                elif ch and (ch.lower() in LEAD_R):
+                    state = ch
                     continue
-                else:
-                    flags = set()
+        flags = (0x80 if (ch in ALL_K) else 0) | (flags >> 1)
         return ch, ibuf, state, obuf, flags
 
 
@@ -302,7 +350,7 @@ def r2ks(s):
         ch, s = s[:1], s[1:]
         return ch
 
-    ibuf, state, obuf, flags = "", "", "", set()
+    ibuf, state, obuf, flags = "", EMPTY_STATE, "", 0
     while True:
         ch, ibuf, state, obuf, flags = r2k(
             ibuf=ibuf, state=state, obuf=obuf, flags=flags, getch=getch
@@ -396,6 +444,7 @@ def smoketest():
         n="ﾝ",
         n_="ﾝ",
         __xn="ﾝ",
+        __ln="ﾝ",
         gagigugegogyagyugyo="ｶﾞｷﾞｸﾞｹﾞｺﾞｷﾞｬｷﾞｭｷﾞｮ",
         __gyigye="ｷﾞｨｷﾞｪ",
         zazizuzezozyazyuzyezyo="ｻﾞｼﾞｽﾞｾﾞｿﾞｼﾞｬｼﾞｭｼﾞｪｼﾞｮ",
@@ -479,6 +528,7 @@ def smoketest():
     n'       ^
     nn       kka
     xn       xxa
+    ln       lla
 
       wha  whi  whu  whe  who
       kwa  kwi  kwu  kwe  kwo
@@ -534,6 +584,7 @@ def smoketest():
       ﾝ      ｰ
       ﾝ      ｯｶ
       ﾝ      ｯｧ
+      ﾝ      ｯｧ
 
     ｳｧ  ｳｨ  ｳ   ｳｪ  ｳｫ
     ｸｧ  ｸｨ  ｸｩ  ｸｪ  ｸｫ
@@ -571,20 +622,22 @@ def smoketest():
     assert (
         r2ks(long_romaji_specimen).split() == long_kana_specimen.split()
     ), f"r2ks({repr(long_romaji_specimen)}) failed, expected: \n {repr(long_kana_specimen)}, but got:\n {repr(r2ks(long_romaji_specimen))}"
-    assert r2ks("Ra-men") == "ﾗ-ﾒﾝ"
-    assert r2ks("cyocore-to") == "ﾁｮｺﾚ-ﾄ"
-    assert r2ks("chokore-to") == "ﾁｮｺﾚ-ﾄ"
-    assert r2ks("tyokore-to") == "ﾁｮｺﾚ-ﾄ"
-    assert r2ks("tixyokore-to") == "ﾁｮｺﾚ-ﾄ"
-    assert r2ks("chilyokore-to") == "ﾁｮｺﾚ-ﾄ"
-    assert r2ks("KYANTO/BAI/MI-/RABU") == "ｷｬﾝﾄ･ﾊﾞｲ･ﾐ-･ﾗﾌﾞ"
-    assert r2ks("byu-t'ifuru/sande-") == "ﾋﾞｭ-ﾃｨﾌﾙ･ｻﾝﾃﾞ-"
+    assert r2ks("Ra-men") == "ﾗｰﾒﾝ"
+    assert r2ks("cyocore-to") == "ﾁｮｺﾚｰﾄ"
+    assert r2ks("chokore-to") == "ﾁｮｺﾚｰﾄ"
+    assert r2ks("tyokore-to") == "ﾁｮｺﾚｰﾄ"
+    assert r2ks("tixyokore-to") == "ﾁｮｺﾚｰﾄ"
+    assert r2ks("chilyokore-to") == "ﾁｮｺﾚｰﾄ"
+    assert r2ks("KYANTO/BAI/MI-/RABU") == "ｷｬﾝﾄ･ﾊﾞｲ･ﾐｰ･ﾗﾌﾞ"
+    assert r2ks("byu-t'ifuru/sande-") == "ﾋﾞｭｰﾃｨﾌﾙ･ｻﾝﾃﾞｰ"
     assert r2ks("BarakuZ/Obama") == "ﾊﾞﾗｸ･ｵﾊﾞﾏ"
-    assert r2ks("Pa-sonaru/Conpyu-ta-") == "ﾊﾟ-ｿﾅﾙ･ｺﾝﾋﾟｭ-ﾀ-"
+    assert r2ks("Pa-sonaru/Conpyu-ta-") == "ﾊﾟｰｿﾅﾙ･ｺﾝﾋﾟｭｰﾀｰ"
     assert r2ks("Da/Vinchi=DaVinchi") == "ﾀﾞ･ｳﾞｨﾝﾁ=ﾀﾞｳﾞｨﾝﾁ"
     assert r2ks("VARISU") == "ｳﾞｧﾘｽ"
     assert r2ks("I-SU") == "ｲｰｽ"
     assert r2ks("I^su") == "ｲｰｽ"
+    assert r2ks("a-123") == "ｱｰ123"
+    assert r2ks("az-123") == "ｱ-123"
 
 
 smoketest()
@@ -599,7 +652,7 @@ def main():
     When invoked with arguments, each is treated as a filename and filtered to stdout.
     The special filename `-` refers to stdin.
     """
-    ibuf, state, obuf, flags = "", "", "", set()
+    ibuf, state, obuf, flags = "", EMPTY_STATE, "", 0
     _, *filenames = sys.argv
     filenames = filenames or ["-"]
     for filename in filenames:
