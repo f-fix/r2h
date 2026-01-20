@@ -714,7 +714,21 @@ def smoketest():
     assert r2ks("q\bu") == "ｳ"
     assert r2ks("kwu") == "ｸｩ"
     assert r2ks("kw\bu") == "ｸｳ"  # probably surprising/wrong
-
+    assert r2ks("konnnichiha") == "ｺﾝﾆﾁﾊ"
+    assert r2ks("kon'nichiha") == "ｺﾝﾆﾁﾊ"
+    assert r2ks("kon'nitiha") == "ｺﾝﾆﾁﾊ"
+    assert r2ks("colnnitiha") == "ｺﾝﾆﾁﾊ"
+    assert r2ks("coxnnitiha") == "ｺﾝﾆﾁﾊ"
+    assert r2ks("wwhawwhiwwhuwwhewwho") == "ｯｳｧｯｳｨｯｳｯｳｪｯｳｫ"
+    assert r2ks("vvavvivvuvvevvo") == "ｯｳﾞｧｯｳﾞｨｯｳﾞｯｳﾞｪｯｳﾞｫ"
+    assert r2ks("ttyattyittyuttyettyo") == "ｯﾁｬｯﾁｨｯﾁｭｯﾁｪｯﾁｮ"
+    assert r2ks("ccyaccyiccyuccyeccyo") == "ｯﾁｬｯﾁｨｯﾁｭｯﾁｪｯﾁｮ"
+    assert r2ks("ffaffiffuffeffo") == "ｯﾌｧｯﾌｨｯﾌｯﾌｪｯﾌｫ"
+    assert r2ks("bbabbibbubbebbo") == "ｯﾊﾞｯﾋﾞｯﾌﾞｯﾍﾞｯﾎﾞ"
+    assert r2ks("pphapphipphuppheppho") == "ｯﾌﾟｧｯﾌﾟｨｯﾌﾟｩｯﾌﾟｪｯﾌﾟｫ"
+    assert r2ks("bbyabbyibbyubbyebbyo") == "ｯﾋﾞｬｯﾋﾞｨｯﾋﾞｭｯﾋﾞｪｯﾋﾞｮ"
+    assert r2ks("ppyappyippyuppyeppyo") == "ｯﾋﾟｬｯﾋﾟｨｯﾋﾟｭｯﾋﾟｪｯﾋﾟｮ"
+    assert r2ks("pphapphipphuppheppho") == "ｯﾌﾟｧｯﾌﾟｨｯﾌﾟｩｯﾌﾟｪｯﾌﾟｫ"
 
 smoketest()
 
