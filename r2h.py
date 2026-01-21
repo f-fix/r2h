@@ -88,8 +88,8 @@ Y_R = "y"
 YAYUYO_K = "ﾔﾕﾖ"
 R_K = "ﾗﾘﾙﾚﾛ"
 YAIYUEYO_K = YAYUYO_K[0] + AIUEO_K[1] + YAYUYO_K[1] + AIUEO_K[3] + YAYUYO_K[2]
-XLKSTNHMR_R = X_R + L_R + KSTNHMR_R
-XLKSTNHMR_K = [X_K, X_K, K_K, S_K, T_K, N_K, H_K, M_K, R_K]
+XLKSTNHMRC_R = X_R + L_R + KSTNHMR_R + C_R
+XLKSTNHMRC_K = [X_K, X_K, K_K, S_K, T_K, N_K, H_K, M_K, R_K, C_K]
 GZDB_R = "gzdb"
 G_R = GZDB_R[0]
 Z_R = GZDB_R[1]
@@ -107,12 +107,12 @@ Q_R = "q"
 J_R = "j"
 F_R = "f"
 P_R = "p"
-YWQCJFPV_R = Y_R + W_R + Q_R + C_R + J_R + F_R + P_R + V_R
-LEAD_R = XLKSTNHMR_R + GZDB_R + YWQCJFPV_R
+YWQJFPV_R = Y_R + W_R + Q_R + J_R + F_R + P_R + V_R
+LEAD_R = XLKSTNHMRC_R + GZDB_R + YWQJFPV_R
 KSTNHMRGZDBPJ_R = KSTNHMR_R + GZDB_R + P_R + J_R
 APOSTROPHE_A = "'"
 
-ALL_R = AIUEO_R + XLKSTNHMR_R + GZDB_R + YWQCJFPV_R
+ALL_R = AIUEO_R + XLKSTNHMRC_R + GZDB_R + YWQJFPV_R
 assert sorted(ALL_R) == [chr(cc) for cc in range(ord("a"), 1 + ord("z"))]
 
 ALL_K = (
@@ -159,18 +159,16 @@ def r2k(*, ibuf, state, obuf, flags, getch):
                     return ch, ibuf, state, obuf, flags
             aiueo_idx = AIUEO_R.find(ch.lower()) if ch else -1
             punct_idx = PUNCT_A.find(ch.lower()) if ch else -1
-            if (state.lower() == N_R) and (ch.lower() in (N_R, APOSTROPHE_A)):
-                ch, state = NN_K, EMPTY_STATE
-            elif state.lower() in (X_R, L_R) and ch.lower() == N_R:
+            state_xlkstnhmrc_idx = XLKSTNHMRC_R.find(state.lower()) if state else -1
+            if ((state.lower() == N_R) and (ch.lower() in (N_R, APOSTROPHE_A))) or (
+                state.lower() in (X_R, L_R) and ch.lower() == N_R
+            ):
                 ch, state = NN_K, EMPTY_STATE
             elif ch and ch.lower() == state.lower() and (ch.lower() in LEAD_R):
                 obuf = XTU_K
                 continue
             elif (state.lower() in (X_R + Y_R, L_R + Y_R)) and (aiueo_idx >= 0):
                 ch, state = XYAIYUEYO_K[aiueo_idx], EMPTY_STATE
-                aiueo_idx = -1
-            elif (state.lower() in (X_R, L_R)) and (aiueo_idx >= 0):
-                ch, state = X_K[aiueo_idx], EMPTY_STATE
                 aiueo_idx = -1
             elif (state.lower() in (W_R, P_R) and ch.lower() == H_R) or (
                 state.lower() in (T_R, D_R) and ch.lower() == APOSTROPHE_A
@@ -201,14 +199,11 @@ def r2k(*, ibuf, state, obuf, flags, getch):
                 ibuf = state[:1] + U_R + X_R + ch + ibuf
                 state = EMPTY_STATE
                 continue
-            elif state and state.lower() in XLKSTNHMR_R and (aiueo_idx >= 0):
+            elif (state_xlkstnhmrc_idx >= 0) and (aiueo_idx >= 0):
                 ch, state = (
-                    XLKSTNHMR_K[XLKSTNHMR_R.index(state.lower())][aiueo_idx],
+                    XLKSTNHMRC_K[state_xlkstnhmrc_idx][aiueo_idx],
                     EMPTY_STATE,
                 )
-                aiueo_idx = -1
-            elif state.lower() == C_R and (aiueo_idx >= 0):
-                ch, state = C_K[aiueo_idx], EMPTY_STATE
                 aiueo_idx = -1
             elif state.lower() == Y_R and (aiueo_idx >= 0):
                 if ch.lower() == E_R:
@@ -719,6 +714,8 @@ def smoketest():
     assert r2ks("kon'nitiha") == "ｺﾝﾆﾁﾊ"
     assert r2ks("colnnitiha") == "ｺﾝﾆﾁﾊ"
     assert r2ks("coxnnitiha") == "ｺﾝﾆﾁﾊ"
+    assert r2ks("aaiiuueeoo") == "ｱｱｲｲｳｳｴｴｵｵ"
+    assert r2ks("a-i-u-e-o-") == "ｱｰｲｰｳｰｴｰｵｰ"
     assert r2ks("wwhawwhiwwhuwwhewwho") == "ｯｳｧｯｳｨｯｳｯｳｪｯｳｫ"
     assert r2ks("vvavvivvuvvevvo") == "ｯｳﾞｧｯｳﾞｨｯｳﾞｯｳﾞｪｯｳﾞｫ"
     assert r2ks("ttyattyittyuttyettyo") == "ｯﾁｬｯﾁｨｯﾁｭｯﾁｪｯﾁｮ"
@@ -729,6 +726,48 @@ def smoketest():
     assert r2ks("bbyabbyibbyubbyebbyo") == "ｯﾋﾞｬｯﾋﾞｨｯﾋﾞｭｯﾋﾞｪｯﾋﾞｮ"
     assert r2ks("ppyappyippyuppyeppyo") == "ｯﾋﾟｬｯﾋﾟｨｯﾋﾟｭｯﾋﾟｪｯﾋﾟｮ"
     assert r2ks("pphapphipphuppheppho") == "ｯﾌﾟｧｯﾌﾟｨｯﾌﾟｩｯﾌﾟｪｯﾌﾟｫ"
+    assert r2ks("yyayyiyyuyyeyyo") == "ｯﾔｯｲｯﾕｯｲｪｯﾖ"
+    assert r2ks("yaayiiyuuyeeyoo") == "ﾔｱｲｲﾕｳｲｪｴﾖｵ"
+    assert r2ks("ya-yi-yu-ye-yo-") == "ﾔｰｲｰﾕｰｲｪｰﾖｰ"
+
+    # some error handling tests
+    assert r2ks("abcdefghijklmnopqrstuvwxyz") == "ｱbcﾃﾞfgﾋjklmﾉpqrsﾂvwxyz"
+    assert (
+        r2ks("a b c d e f g h i j k l m n o p q r s t u v w x y z")
+        == "ｱ b c d ｴ f g h ｲ j k l m ﾝ ｵ p q r s t ｳ v w x y z"
+    )
+    assert (
+        r2ks("aabbccddeeffgghhiijjkkllmmnnooppqqrrssttuuvvwwxxyyzz")
+        == "ｱｱｯbｯcｯﾃﾞｴｯfｯgｯﾋｲｯjｯkｯlｯmﾝｵｵｯpｯqｯrｯsｯﾂｳｯvｯwｯxyyｯz"
+    )
+    assert (
+        r2ks(
+            "aa bb cc dd ee ff gg hh ii jj kk ll mm nn oo pp qq rr ss tt uu vv ww xx yy zz"
+        )
+        == "ｱｱ ｯb ｯc ｯd ｴｴ ｯf ｯg ｯh ｲｲ ｯj ｯk ｯl ｯm ﾝ ｵｵ ｯp ｯq ｯr ｯs ｯt ｳｳ ｯv ｯw ｯx ｯy ｯz"
+    )
+
+    for cc in range(128):
+        ch = chr(cc)
+        if ch.lower() in PUNCT_A:
+            assert (
+                r2ks(ch) == PUNCT_K[PUNCT_A.index(ch.lower())]
+            ), f"conversion failed for punctuation {ch}: got {r2ks(ch)}"
+        elif ch.lower() in AIUEO_R:
+            assert (
+                r2ks(ch) == AIUEO_K[AIUEO_R.index(ch.lower())]
+            ), f"conversion failed for vowel {ch}: got {r2ks(ch)}"
+        elif ch.lower() == N_R:
+            assert (
+                r2ks(ch) == NN_K
+            ), f"conversion failed for moraic {ch}: got {r2ks(ch)}"
+        elif ch.lower() == CHOUONPU_A:
+            assert (
+                r2ks(ch) == CHOUONPU_K
+            ), f"conversion failed for chouonpu {ch}: got {r2ks(ch)}"
+        else:
+            assert r2ks(ch) == ch, f"conversion failed for {ch}: got {r2ks(ch)}"
+
 
 smoketest()
 
