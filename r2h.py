@@ -135,9 +135,9 @@ ALL_K = (
     + DAKUTEN_K
     + HANDAKUTEN_K
 )
-assert ALL_K == bytes(range(0xA1, 0xE0)).decode("cp932")
-
-EMPTY_STATE = ""
+assert (  # Ensure all the halfwidth kana are represented and each only once
+    ALL_K == bytes(range(0xA1, 0xE0)).decode("cp932")
+)
 
 
 def r2k_one_to_one(*, ibuf, state, obuf, flags, getch):
@@ -145,7 +145,7 @@ def r2k_one_to_one(*, ibuf, state, obuf, flags, getch):
     convert subset of romaji to halfwidth katakana.
 
     - ibuf is an input stuffing buffer used when retrying characters from failed conversions; initially it should be an empty string.
-    - state is the current state of the input conversion; initially it should be EMPTY_STATE.
+    - state is the current state of the input conversion; initially it should be "".
     - obuf is a buffer for accumulating characters to be output; initially it should be an empty string.
     - flags is an integer containing conversion state flags relating to backspace processing; initially it should be 0.
     - getch is a callable closure or function that returns a single character from the input stream when called, blocking if needed; returning an empty sttring indicates the input source is exhausted (EOF).
@@ -214,52 +214,52 @@ def r2k_one_to_one(*, ibuf, state, obuf, flags, getch):
             punct_idx = PUNCT_A.find(ch.lower()) if ch else -1
             state_xkstnhmr_idx = XKSTNHMR_R.find(state.lower()) if state else -1
             if (state.lower() == N_R) and (ch.lower() == APOSTROPHE_A):
-                ch, state = NN_K, EMPTY_STATE
+                ch, state = NN_K, ""
             elif (state.lower() == X_R + Y_R) and (auo_idx >= 0):
-                ch, state = XYAYUYO_K[auo_idx], EMPTY_STATE
+                ch, state = XYAYUYO_K[auo_idx], ""
                 aiueo_idx = -1
             elif (state_xkstnhmr_idx >= 0) and (aiueo_idx >= 0):
                 ch, state = (
                     XKSTNHMR_K[state_xkstnhmr_idx][aiueo_idx],
-                    EMPTY_STATE,
+                    "",
                 )
                 aiueo_idx = -1
             elif state.lower() == Y_R and (auo_idx >= 0):
-                ch, state = YAYUYO_K[auo_idx], EMPTY_STATE
+                ch, state = YAYUYO_K[auo_idx], ""
                 aiueo_idx = -1
             elif state.lower() == W_R and (aiueo_idx >= 0):
                 if ch.lower() == A_R:
                     ch = WA_K
-                    state = EMPTY_STATE
+                    state = ""
                     aiueo_idx = -1
                 elif ch.lower() == O_R:
                     ch = WO_K
-                    state = EMPTY_STATE
+                    state = ""
                     aiueo_idx = -1
             elif (state.lower() == X_R) and ch.lower() in (Y_R, T_R):
                 state += ch
                 continue
             elif state.lower() == X_R + T_R and ch.lower() == U_R:
-                ch, state = XTU_K, EMPTY_STATE
+                ch, state = XTU_K, ""
                 aiueo_idx = -1
             elif state.lower() == Z_R:
                 if (state + ch).lower() == HANDAKUTEN_R:
-                    ch, state = HANDAKUTEN_K, EMPTY_STATE
+                    ch, state = HANDAKUTEN_K, ""
                     iueo_idx, punct_idx = -1, -1
                 elif (state + ch).lower() == DAKUTEN_R:
-                    ch, state = DAKUTEN_K, EMPTY_STATE
+                    ch, state = DAKUTEN_K, ""
                 elif ch == MIDDOT_A:
-                    ch, state = MIDDOT_K, EMPTY_STATE
+                    ch, state = MIDDOT_K, ""
                 elif ch == HYPHEN_MINUS_A:
                     flags &= 0x7F
-                    state = EMPTY_STATE
+                    state = ""
             if state:
                 obuf += state[:1]
                 ibuf += state[1:] + ch
-                state = EMPTY_STATE
+                state = ""
                 ch, obuf = obuf[:1], obuf[1:]
             else:
-                assert state == EMPTY_STATE
+                assert state == ""
                 if punct_idx >= 0:
                     ch = PUNCT_K[punct_idx]
                 elif ch == CHOUONPU_A:
@@ -278,11 +278,9 @@ def r2k_one_to_one(*, ibuf, state, obuf, flags, getch):
         return ch, ibuf, state, obuf, flags
 
 
-EMPTY_STATE_R2R = ""
-
 UNUSED_R2R = chr(
     0x10FFFF
-)  # used as a marked for unused/filler slots in various character buffers
+)  # used as a marker for unused/filler slots in various character buffers
 
 DEBUG_REWRITER = False  # or True  # Uncomment ` or True` to debug r2hs
 debug_original, debug_rewritten = "", ""
@@ -293,7 +291,7 @@ def r2h(*, ibuf, state, obuf, flags, getch):
     convert romaji to halfwidth katakana
 
     - ibuf is an input stuffing buffer used when retrying characters from failed conversions; initially it should be an empty string.
-    - state is the current state of the input conversion; initially it should be EMPTY_STATE.
+    - state is the current state of the input conversion; initially it should be "".
     - obuf is a buffer for accumulating characters to be output; initially it should be an empty string.
     - flags is an integer containing conversion state flags relating to backspace processing; initially it should be 0.
     - getch is a callable closure or function that returns a single character from the input stream when called, blocking if needed; returning an empty sttring indicates the input source is exhausted (EOF).
@@ -383,7 +381,7 @@ def r2h(*, ibuf, state, obuf, flags, getch):
 
     """
     ibuf_r2k, ibuf_r2r = ibuf[::2].rstrip(UNUSED_R2R), ibuf[1::2].rstrip(UNUSED_R2R)
-    state_r2k, state_r2r = state[::2].rstrip(UNUSED_R2R), state[1::2].rstrip(UNUSED_R2R)
+    state_r2k, prefix = state[::2].rstrip(UNUSED_R2R), state[1::2].rstrip(UNUSED_R2R)
     obuf_r2k, obuf_r2r = obuf[::2].rstrip(UNUSED_R2R), obuf[1::2].rstrip(UNUSED_R2R)
     flags_r2k, flags_r2r = flags & 0xFF, flags >> 8
 
@@ -391,7 +389,7 @@ def r2h(*, ibuf, state, obuf, flags, getch):
         """
         romaji-to-romaji rewriting
         """
-        nonlocal ibuf_r2r, state_r2r, obuf_r2r, flags_r2r
+        nonlocal ibuf_r2r, prefix, obuf_r2r, flags_r2r
         while True:
             if obuf_r2r:
                 ch, obuf_r2r = obuf_r2r[:1], obuf_r2r[1:]
@@ -403,21 +401,21 @@ def r2h(*, ibuf, state, obuf, flags, getch):
                 if DEBUG_REWRITER:
                     global debug_original
                     debug_original += ch
-            if state_r2r and (ch.lower() in (BACKSPACE_A, RUBOUT_A)):
-                state_r2r = state_r2r[:-1]
+            if prefix and (ch.lower() in (BACKSPACE_A, RUBOUT_A)):
+                prefix = prefix[:-1]
                 continue
 
             def cased(s):
-                if state_r2r != state_r2r.lower():
+                if prefix != prefix.lower():
                     s = s.upper()
                 return s
 
             voicing_r = ""
-            if state_r2r[:1].lower() in (V_R, G_R, J_R, Z_R, D_R, B_R):
+            if prefix[:1].lower() in (V_R, G_R, J_R, Z_R, D_R, B_R):
                 voicing_r = cased(DAKUTEN_R)
-            elif state_r2r[:1].lower() == P_R:
+            elif prefix[:1].lower() == P_R:
                 voicing_r = cased(HANDAKUTEN_R)
-            onset_r = state_r2r[:1]
+            onset_r = prefix[:1]
             onset_r = (
                 cased(
                     {
@@ -435,12 +433,12 @@ def r2h(*, ibuf, state, obuf, flags, getch):
                 )
                 or onset_r
             )
-            if (state_r2r + ch)[:2].lower() == W_R + H_R:
+            if (prefix + ch)[:2].lower() == W_R + H_R:
                 onset_r = cased(U_R)
-            elif state_r2r[:1].lower() == C_R:
-                if (state_r2r[1:2] or ch).lower() in (I_R, E_R):
+            elif prefix[:1].lower() == C_R:
+                if (prefix[1:2] or ch).lower() in (I_R, E_R):
                     onset_r = cased(S_R)
-                elif (state_r2r[1:2] or ch).lower() in (H_R, Y_R):
+                elif (prefix[1:2] or ch).lower() in (H_R, Y_R):
                     onset_r = cased(T_R)
                 else:
                     onset_r = cased(K_R)
@@ -451,17 +449,13 @@ def r2h(*, ibuf, state, obuf, flags, getch):
             onset_o_r = onset_r + cased(O_R) + voicing_r
             small_r = cased(X_R)
             small_y_r = small_r + cased(Y_R)
-            if (
-                state_r2r
-                and (state_r2r.lower() != N_R)
-                and (ch.lower() == state_r2r.lower())
-            ):
+            if prefix and (prefix.lower() != N_R) and (ch.lower() == prefix.lower()):
                 obuf_r2r = small_r + cased(T_R + U_R)
-                state_r2r = ch
+                prefix = ch
                 continue
             if (
                 (
-                    state_r2r == EMPTY_STATE_R2R
+                    prefix == ""
                     and (
                         ch
                         and ch.lower()
@@ -479,10 +473,10 @@ def r2h(*, ibuf, state, obuf, flags, getch):
                         + W_R
                     )
                 )
-                or ((state_r2r.lower() in (X_R, L_R)) and (ch.lower() == T_R))
+                or ((prefix.lower() in (X_R, L_R)) and (ch.lower() == T_R))
                 or (
                     (
-                        state_r2r.lower()
+                        prefix.lower()
                         in (
                             X_R,
                             L_R,
@@ -511,74 +505,75 @@ def r2h(*, ibuf, state, obuf, flags, getch):
                     and (ch.lower() == Y_R)
                 )
                 or (
-                    (state_r2r.lower() in (X_R + T_R, L_R + T_R, T_R))
+                    (prefix.lower() in (X_R + T_R, L_R + T_R, T_R))
                     and (ch.lower() == S_R)
                 )
                 or (
                     (
-                        state_r2r.lower()
+                        prefix.lower()
                         in (K_R, G_R, Q_R, Z_R, H_R, F_R, S_R, C_R, T_R, D_R)
                     )
                     and (ch.lower() == W_R)
                 )
                 or (
-                    (state_r2r.lower() in (S_R, C_R, T_R, D_R, P_R, W_R))
+                    (prefix.lower() in (S_R, C_R, T_R, D_R, P_R, W_R))
                     and (ch.lower() == H_R)
                 )
-                or ((state_r2r.lower() in (T_R, D_R)) and ch.lower() == APOSTROPHE_A)
-                or ((state_r2r.lower() == D_R) and ch.lower() == Z_R)
+                or ((prefix.lower() in (T_R, D_R)) and ch.lower() == APOSTROPHE_A)
+                or ((prefix.lower() == D_R) and ch.lower() == Z_R)
             ):
-                state_r2r += ch
+                prefix += ch
                 continue
             elif (
-                (state_r2r.lower() in (X_R, L_R)) and ch and (ch.lower() in AIUEO_R)
+                (prefix.lower() in (X_R, L_R)) and ch and (ch.lower() in AIUEO_R)
             ) or (
-                (state_r2r.lower() in (X_R + Y_R, L_R + Y_R))
+                (prefix.lower() in (X_R + Y_R, L_R + Y_R))
                 and (ch.lower() in (I_R, E_R))
             ):
                 obuf_r2r = small_r + ch
-                state_r2r = EMPTY_STATE_R2R
+                prefix = ""
                 continue
-            elif (state_r2r.lower() in (X_R, L_R)) and ch.lower() == N_R:
+            elif (prefix.lower() in (X_R, L_R)) and ch.lower() == N_R:
                 obuf_r2r = ch + APOSTROPHE_A
-                state_r2r = EMPTY_STATE_R2R
+                prefix = ""
                 continue
             elif (
-                (state_r2r.lower() in (X_R + Y_R, L_R + Y_R))
+                (prefix.lower() in (X_R + Y_R, L_R + Y_R))
                 and ch
                 and (ch.lower() in AUO_R)
             ):
                 obuf_r2r = small_y_r + ch
-                state_r2r = EMPTY_STATE_R2R
+                prefix = ""
                 continue
             elif (
-                (state_r2r.lower() in (X_R + T_R, L_R + T_R)) and (ch.lower() == U_R)
+                (prefix.lower() in (X_R + T_R, L_R + T_R)) and (ch.lower() == U_R)
             ) or (
-                (state_r2r.lower() in (X_R + T_R + S_R, L_R + T_R + S_R))
+                (prefix.lower() in (X_R + T_R + S_R, L_R + T_R + S_R))
                 and (ch.lower() == U_R)
             ):
-                obuf_r2r = small_r + state_r2r[1:2] + ch
-                state_r2r = EMPTY_STATE_R2R
+                obuf_r2r = small_r + prefix[1:2] + ch
+                prefix = ""
                 continue
-            elif (state_r2r.lower() == V_R) and (ch and (ch.lower() in AIUEO_R)):
-                if ch.lower() == U_R:
-                    obuf_r2r = onset_r + voicing_r
-                else:
-                    obuf_r2r = onset_r + voicing_r + small_r + ch
-                state_r2r = EMPTY_STATE_R2R
+            elif (prefix.lower() == V_R) and (ch.lower() == U_R):
+                obuf_r2r = onset_r + voicing_r
+                prefix = ""
                 continue
-            elif (state_r2r.lower() == V_R + Y_R) and ch and (ch.lower() in AUO_R):
-                obuf_r2r = onset_r + voicing_r + small_r + state_r2r[1:] + ch
-                state_r2r = EMPTY_STATE_R2R
-                continue
-            elif (state_r2r.lower() == V_R + Y_R) and ch and (ch.lower() in (I_R, E_R)):
+            elif (
+                (prefix.lower() == V_R)
+                and (ch and (ch.lower() in AIUEO_R))
+                and (ch.lower() != U_R)
+            ) or ((prefix.lower() == V_R + Y_R) and (ch.lower() in (I_R, E_R))):
                 obuf_r2r = onset_r + voicing_r + small_r + ch
-                state_r2r = EMPTY_STATE_R2R
+                prefix = ""
+                continue
+            elif (prefix.lower() == V_R + Y_R) and ch and (ch.lower() in AUO_R):
+                obuf_r2r = onset_r + voicing_r + small_r + prefix[1:] + ch
+                prefix = ""
                 continue
             elif (
                 (
                     (
-                        state_r2r.lower()
+                        prefix.lower()
                         in (
                             K_R,
                             G_R,
@@ -597,69 +592,99 @@ def r2h(*, ibuf, state, obuf, flags, getch):
                     )
                     and (ch and (ch.lower() in AIUEO_R))
                 )
-                or ((state_r2r.lower() == Y_R) and ch and (ch.lower() in AUO_R))
-                or ((state_r2r.lower() == W_R) and (ch.lower() in (A_R, O_R)))
+                or ((prefix.lower() == Y_R) and ch and (ch.lower() in AUO_R))
+                or ((prefix.lower() == W_R) and (ch.lower() in (A_R, O_R)))
+                or ((prefix.lower() == Q_R) and (ch.lower() == U_R))
+                or ((prefix.lower() in (C_R + H_R, C_R + Y_R)) and (ch.lower() == I_R))
             ):
                 obuf_r2r = onset_ch_r
-                state_r2r = EMPTY_STATE_R2R
+                if prefix.lower() == C_R + Y_R:
+                    obuf_r2r += small_r + ch
+                prefix = ""
                 continue
             elif (
-                (state_r2r.lower() in (K_R + Y_R, G_R + Y_R))
+                (
+                    prefix.lower()
+                    in (
+                        K_R + Y_R,
+                        G_R + Y_R,
+                        Z_R + Y_R,
+                        J_R + Y_R,
+                        T_R + Y_R,
+                        D_R + Y_R,
+                        N_R + Y_R,
+                        B_R + Y_R,
+                        M_R + Y_R,
+                        R_R + Y_R,
+                        H_R + Y_R,
+                        P_R + Y_R,
+                    )
+                )
                 and ch
                 and (ch.lower() in AIUEO_R)
             ):
                 obuf_r2r = onset_i_r
                 if ch.lower() in AUO_R:
-                    obuf_r2r += small_r + state_r2r[1:] + ch
+                    obuf_r2r += small_r + prefix[1:] + ch
                 else:
                     obuf_r2r += small_r + ch
-                state_r2r = EMPTY_STATE_R2R
+                prefix = ""
                 continue
             elif (
-                (state_r2r.lower() in (K_R + W_R, G_R + W_R))
-                and ch
+                (
+                    (
+                        prefix.lower()
+                        in (
+                            K_R + W_R,
+                            G_R + W_R,
+                            C_R + W_R,
+                            Q_R + W_R,
+                            S_R + W_R,
+                            Z_R + W_R,
+                            F_R + W_R,
+                            P_R + H_R,
+                        )
+                    )
+                    and ch
+                    and (ch.lower() in AIUEO_R)
+                )
+                or (
+                    (prefix.lower() in (Q_R, T_R + S_R, D_R + Z_R, H_R + W_R, F_R))
+                    and ch
+                    and (ch.lower() in AIUEO_R)
+                    and ch.lower() != U_R
+                )
+                or ((prefix.lower() == H_R + W_R + Y_R) and (ch.lower() == U_R))
+            ):
+                obuf_r2r = onset_u_r + small_r + prefix[2:] + ch
+                prefix = ""
+                continue
+            elif (
+                (prefix.lower() in (T_R + S_R, D_R + Z_R, F_R))
+                and (ch.lower() == U_R)
                 and (ch.lower() in AIUEO_R)
             ):
-                obuf_r2r = onset_u_r + small_r + ch
-                state_r2r = EMPTY_STATE_R2R
+                obuf_r2r = onset_u_r
+                prefix = ""
                 continue
-            elif (state_r2r.lower() == Q_R) and ch and (ch.lower() in AIUEO_R):
-                if ch.lower() == U_R:
-                    obuf_r2r = onset_ch_r
-                else:
-                    obuf_r2r = onset_u_r + small_r + ch
-                state_r2r = EMPTY_STATE_R2R
-                continue
-            elif (state_r2r.lower() == Q_R + Y_R) and ch and (ch.lower() in AUO_R):
-                obuf_r2r = onset_u_r + small_r + state_r2r[1:] + ch
-                state_r2r = EMPTY_STATE_R2R
-                continue
-            elif (state_r2r.lower() in (C_R + H_R, C_R + Y_R)) and (ch.lower() == I_R):
-                obuf_r2r = onset_ch_r
-                if state_r2r.lower() == C_R + Y_R:
-                    obuf_r2r += small_r + ch
-                state_r2r = EMPTY_STATE_R2R
-                continue
-            elif (state_r2r.lower() in (C_R + H_R, C_R + Y_R)) and (
-                ch.lower() in AUO_R
+            elif (
+                (prefix.lower() in (Q_R + Y_R, F_R + Y_R))
+                and ch
+                and (ch.lower() in AUO_R)
             ):
+                obuf_r2r = onset_u_r + small_r + prefix[1:] + ch
+                prefix = ""
+                continue
+            elif (prefix.lower() in (C_R + H_R, C_R + Y_R)) and (ch.lower() in AUO_R):
                 obuf_r2r = onset_i_r + small_y_r + ch
-                state_r2r = EMPTY_STATE_R2R
+                prefix = ""
                 continue
-            elif (state_r2r.lower() in (C_R + H_R, C_R + Y_R)) and (ch.lower() == E_R):
+            elif (prefix.lower() in (C_R + H_R, C_R + Y_R)) and (ch.lower() == E_R):
                 obuf_r2r = onset_i_r + small_r + ch
-                state_r2r = EMPTY_STATE_R2R
+                prefix = ""
                 continue
-            elif (
-                (state_r2r.lower() in (C_R + W_R, Q_R + W_R))
-                and ch
-                and (ch.lower() in AIUEO_R)
-            ):
-                obuf_r2r = onset_u_r + small_r + ch
-                state_r2r = EMPTY_STATE_R2R
-                continue
-            elif (state_r2r.lower() == Z_R) and (
-                (state_r2r + ch).lower()
+            elif (prefix.lower() == Z_R) and (
+                (prefix + ch).lower()
                 in (
                     DAKUTEN_R,
                     HANDAKUTEN_R,
@@ -667,59 +692,24 @@ def r2h(*, ibuf, state, obuf, flags, getch):
                     Z_R + HYPHEN_MINUS_A,
                 )
             ):
-                obuf_r2r = state_r2r + ch
-                state_r2r = EMPTY_STATE_R2R
-                continue
-            elif (state_r2r.lower() == Z_R + Y_R) and ch and (ch.lower() in AIUEO_R):
-                obuf_r2r = onset_i_r
-                if ch.lower() in AUO_R:
-                    obuf_r2r += small_r + state_r2r[1:] + ch
-                else:
-                    obuf_r2r += small_r + ch
-                state_r2r = EMPTY_STATE_R2R
+                obuf_r2r = prefix + ch
+                prefix = ""
                 continue
             elif (
-                (state_r2r.lower() in (S_R + W_R, Z_R + W_R, F_R + W_R))
+                (prefix.lower() in (S_R + H_R, S_R + Y_R, J_R))
                 and ch
                 and (ch.lower() in AIUEO_R)
             ):
-                obuf_r2r = onset_u_r + small_r + ch
-                state_r2r = EMPTY_STATE_R2R
-                continue
-            elif (
-                (state_r2r.lower() in (S_R + H_R, S_R + Y_R))
-                and ch
-                and (ch.lower() in AIUEO_R)
-            ):
-                if ch.lower() == I_R and state_r2r.lower() == S_R + H_R:
+                if ch.lower() == I_R and prefix.lower() in (S_R + H_R, J_R):
                     obuf_r2r = onset_ch_r
                 elif ch.lower() in AUO_R:
                     obuf_r2r = onset_i_r + small_y_r + ch
                 else:
                     obuf_r2r = onset_i_r + small_r + ch
-                state_r2r = EMPTY_STATE_R2R
-                continue
-            elif (state_r2r.lower() == J_R) and ch and (ch.lower() in AIUEO_R):
-                if ch.lower() == I_R:
-                    obuf_r2r = onset_ch_r
-                elif ch.lower() in AUO_R:
-                    obuf_r2r = onset_i_r + small_y_r + ch
-                else:
-                    obuf_r2r = onset_i_r + small_r + ch
-                state_r2r = EMPTY_STATE_R2R
+                prefix = ""
                 continue
             elif (
-                (state_r2r.lower() in (T_R + S_R, D_R + Z_R))
-                and ch
-                and (ch.lower() in AIUEO_R)
-            ):
-                obuf_r2r = onset_u_r
-                if ch.lower() != U_R:
-                    obuf_r2r += small_r + ch
-                state_r2r = EMPTY_STATE_R2R
-                continue
-            elif (
-                (state_r2r.lower() in (T_R + H_R, D_R + H_R))
+                (prefix.lower() in (T_R + H_R, D_R + H_R))
                 and ch
                 and (ch.lower() in AIUEO_R)
             ):
@@ -728,55 +718,40 @@ def r2h(*, ibuf, state, obuf, flags, getch):
                     obuf_r2r += small_y_r + ch
                 else:
                     obuf_r2r += small_r + ch
-                state_r2r = EMPTY_STATE_R2R
+                prefix = ""
                 continue
             elif (
-                (state_r2r.lower() in (J_R + Y_R, T_R + Y_R, D_R + Y_R))
+                (prefix.lower() in (T_R + W_R, D_R + W_R))
                 and ch
                 and (ch.lower() in AIUEO_R)
-            ):
-                obuf_r2r = onset_i_r
-                if ch.lower() in AUO_R:
-                    obuf_r2r += small_r + state_r2r[1:] + ch
-                else:
-                    obuf_r2r += small_r + ch
-                state_r2r = EMPTY_STATE_R2R
-                continue
-            elif (
-                (state_r2r.lower() in (T_R + W_R, D_R + W_R))
-                and ch
-                and (ch.lower() in AIUEO_R)
+            ) or (
+                (prefix.lower() in (T_R + APOSTROPHE_A, D_R + APOSTROPHE_A))
+                and (ch.lower() == U_R)
             ):
                 obuf_r2r = onset_o_r + small_r + ch
-                state_r2r = EMPTY_STATE_R2R
-                continue
-            elif (state_r2r.lower() in (T_R + APOSTROPHE_A, D_R + APOSTROPHE_A)) and (
-                ch.lower() == I_R
-            ):
-                obuf_r2r = onset_e_r + small_r + ch
-                state_r2r = EMPTY_STATE_R2R
-                continue
-            elif (state_r2r.lower() in (T_R + APOSTROPHE_A, D_R + APOSTROPHE_A)) and (
-                ch.lower() == U_R
-            ):
-                obuf_r2r = onset_o_r + small_r + ch
-                state_r2r = EMPTY_STATE_R2R
+                prefix = ""
                 continue
             elif (
-                state_r2r.lower()
-                in (
-                    T_R + APOSTROPHE_A + Y_R,
-                    D_R + APOSTROPHE_A + Y_R,
+                (prefix.lower() in (T_R + APOSTROPHE_A, D_R + APOSTROPHE_A))
+                and (ch.lower() == I_R)
+            ) or (
+                (
+                    prefix.lower()
+                    in (
+                        T_R + APOSTROPHE_A + Y_R,
+                        D_R + APOSTROPHE_A + Y_R,
+                    )
                 )
-            ) and (ch.lower() == U_R):
-                obuf_r2r = onset_e_r + small_r + state_r2r[2:] + ch
-                state_r2r = EMPTY_STATE_R2R
+                and (ch.lower() == U_R)
+            ):
+                obuf_r2r = onset_e_r + small_r + prefix[2:] + ch
+                prefix = ""
                 continue
-            elif (state_r2r.lower() == N_R) and (ch.lower() in (N_R, APOSTROPHE_A)):
+            elif (prefix.lower() == N_R) and (ch.lower() in (N_R, APOSTROPHE_A)):
                 obuf_r2r = onset_r + APOSTROPHE_A
-                state_r2r = EMPTY_STATE_R2R
+                prefix = ""
                 continue
-            elif (state_r2r.lower() == N_R) and (
+            elif (prefix.lower() == N_R) and (
                 (not ch)
                 or (
                     (ch.lower() not in AIUEO_R)
@@ -784,98 +759,39 @@ def r2h(*, ibuf, state, obuf, flags, getch):
                 )
             ):
                 obuf_r2r = onset_r + APOSTROPHE_A
-                state_r2r = EMPTY_STATE_R2R
+                prefix = ""
                 ibuf_r2r = ch + ibuf_r2r
                 continue
-            elif (state_r2r.lower() == N_R + Y_R) and ch and (ch.lower() in AIUEO_R):
-                obuf_r2r = onset_i_r
-                if ch.lower() in AUO_R:
-                    obuf_r2r += small_y_r + ch
-                else:
-                    obuf_r2r += small_r + ch
-                state_r2r = EMPTY_STATE_R2R
-                continue
-            elif (state_r2r.lower() == H_R + Y_R) and ch and (ch.lower() in AIUEO_R):
-                obuf_r2r = onset_i_r
-                if ch.lower() in AUO_R:
-                    obuf_r2r += small_r + state_r2r[1:] + ch
-                else:
-                    obuf_r2r += small_r + ch
-                state_r2r = EMPTY_STATE_R2R
-                continue
             elif (
-                (state_r2r.lower() == H_R + W_R)
-                and ch
-                and (ch.lower() in AIUEO_R)
-                and ch.lower() != U_R
-            ):
-                obuf_r2r = onset_u_r + small_r + ch
-                state_r2r = EMPTY_STATE_R2R
-                continue
-            elif (state_r2r.lower() == H_R + W_R + Y_R) and (ch.lower() == U_R):
-                obuf_r2r = onset_u_r + small_r + state_r2r[2:] + ch
-                state_r2r = EMPTY_STATE_R2R
-                continue
-            elif (state_r2r.lower() == F_R) and ch and (ch.lower() in AIUEO_R):
-                obuf_r2r = onset_u_r
-                if ch.lower() != U_R:
-                    obuf_r2r += small_r + ch
-                state_r2r = EMPTY_STATE_R2R
-                continue
-            elif (state_r2r.lower() == F_R + Y_R) and ch and (ch.lower() in AUO_R):
-                obuf_r2r = onset_u_r + small_y_r + ch
-                state_r2r = EMPTY_STATE_R2R
-                continue
-            elif (
-                (state_r2r.lower() in (B_R + Y_R, M_R + Y_R, R_R + Y_R))
-                and ch
-                and (ch.lower() in AIUEO_R)
-            ):
-                obuf_r2r = onset_i_r
-                if ch.lower() in AUO_R:
-                    obuf_r2r += small_r + state_r2r[1:] + ch
-                else:
-                    obuf_r2r += small_r + ch
-                state_r2r = EMPTY_STATE_R2R
-                continue
-            elif (state_r2r.lower() == P_R + Y_R) and ch and (ch.lower() in AIUEO_R):
-                obuf_r2r = onset_i_r
-                if ch.lower() in AUO_R:
-                    obuf_r2r += small_r + state_r2r[1:] + ch
-                else:
-                    obuf_r2r += small_r + ch
-                state_r2r = EMPTY_STATE_R2R
-                continue
-            elif (state_r2r.lower() == P_R + H_R) and ch and (ch.lower() in AIUEO_R):
-                obuf_r2r = onset_u_r + small_r + ch
-                state_r2r = EMPTY_STATE_R2R
-                continue
-            elif ((state_r2r.lower() == Y_R) and (ch.lower() == I_R)) or (
-                (state_r2r.lower() == W_R) and (ch.lower() == U_R)
+                ((prefix.lower() == Y_R) and (ch.lower() == I_R))
+                or ((prefix.lower() == W_R) and (ch.lower() == U_R))
+                or ((prefix.lower() == W_R + H_R) and (ch.lower() == U_R))
             ):
                 obuf_r2r = ch
-                state_r2r = EMPTY_STATE_R2R
+                prefix = ""
                 continue
-            elif (state_r2r.lower() == Y_R) and (ch.lower() == E_R):
+            elif (prefix.lower() == Y_R) and (ch.lower() == E_R):
                 obuf_r2r = cased(I_R) + small_r + ch
-                state_r2r = EMPTY_STATE_R2R
+                prefix = ""
                 continue
-            elif (state_r2r.lower() == W_R) and (ch.lower() in (I_R, E_R)):
+            elif (prefix.lower() == W_R) and (ch.lower() in (I_R, E_R)):
                 obuf_r2r = cased(U_R) + small_r + ch
-                state_r2r = EMPTY_STATE_R2R
+                prefix = ""
                 continue
-            elif (state_r2r.lower() == W_R + H_R) and ch and (ch.lower() in AIUEO_R):
-                if ch.lower() == U_R:
-                    obuf_r2r = ch
-                else:
-                    obuf_r2r = onset_r + small_r + ch
-                state_r2r = EMPTY_STATE_R2R
+            elif (
+                (prefix.lower() == W_R + H_R)
+                and ch
+                and (ch.lower() in AIUEO_R)
+                and (ch.lower() != U_R)
+            ):
+                obuf_r2r = onset_r + small_r + ch
+                prefix = ""
                 continue
-            if state_r2r:
-                # print(f"r2r fallback!!! {dict(state_r2r=state_r2r, ch=ch)}")
-                obuf_r2r = state_r2r[:1]
-                ibuf_r2r = state_r2r[1:] + ch + ibuf_r2r
-                state_r2r = EMPTY_STATE_R2R
+            if prefix:
+                # print(f"r2r fallback!!! {dict(prefix=prefix, ch=ch)}")
+                obuf_r2r = prefix[:1]
+                ibuf_r2r = prefix[1:] + ch + ibuf_r2r
+                prefix = ""
                 continue
             break
         if DEBUG_REWRITER:
@@ -894,8 +810,8 @@ def r2h(*, ibuf, state, obuf, flags, getch):
     )
     state = "".join(
         [
-            (state_r2k[i : 1 + i] or UNUSED_R2R) + (state_r2r[i : 1 + i] or UNUSED_R2R)
-            for i in range(max(len(state_r2k), len(state_r2r)))
+            (state_r2k[i : 1 + i] or UNUSED_R2R) + (prefix[i : 1 + i] or UNUSED_R2R)
+            for i in range(max(len(state_r2k), len(prefix)))
         ]
     )
     obuf = "".join(
@@ -923,7 +839,7 @@ def r2hs(s):
         global debug_original, debug_rewritten
         debug_original, debug_rewritten = "", ""
 
-    ibuf, state, obuf, flags = "", EMPTY_STATE, "", 0
+    ibuf, state, obuf, flags = "", "", "", 0
     while True:
         ch, ibuf, state, obuf, flags = r2h(
             ibuf=ibuf, state=state, obuf=obuf, flags=flags, getch=getch
@@ -1382,7 +1298,7 @@ def main():
     When invoked with arguments, each is treated as a filename and filtered to stdout.
     The special filename `-` refers to stdin.
     """
-    ibuf, state, obuf, flags = "", EMPTY_STATE, "", 0
+    ibuf, state, obuf, flags = "", "", "", 0
     _, *filenames = sys.argv
     filenames = filenames or ["-"]
     for filename in filenames:
