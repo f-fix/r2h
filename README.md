@@ -153,75 +153,74 @@ all supported inputs:
 ```
 How that should look in hiragana: (except it will be halfwidth, which Unicode cannot do)
 ```
-     a  i  u  e  o  ya  yi  yu  ye  yo    あ   い   う   え   お  や   い   ゆ   いぇ  よ
-    ka ki ku ke ko kya kyi kyu kye kyo    か   き   く   け   こ  きゃ  きぃ  きゅ  きぇ  きょ
-    sa si su se so sya syi syu sye syo    さ   し   す   せ   そ  しゃ  しぃ  しゅ  しぇ  しょ
-    ta ti tu te to tya tyi tyu tye tyo    た   ち   つ   て   と  ちゃ  ちぃ  ちゅ  ちぇ  ちょ
-    na ni nu ne no nya nyi nyu nye nyo    な   に   ぬ   ね   の  にゃ  にぃ  にゅ  にぇ  にょ
-    ha hi hu he ho hya hyi hyu hye hyo    は   ひ   ふ   へ   ほ  ひゃ  ひぃ  ひゅ  ひぇ  ひょ
-    ma mi mu me mo mya myi myu mye myo    ま   み   む   め   も  みゃ  みぃ  みゅ  みぇ  みょ
-    ra ri ru re ro rya ryi ryu rye ryo    ら   り   る   れ   ろ  りゃ  りぃ  りゅ  りぇ  りょ
-    wa wi wu we wo                        わ   うぃ  う   うぇ  を
+     a  i  u  e  o  ya  yi  yu  ye  yo    あ  い  う  え  お や  い  ゆ  いぇよ
+    ka ki ku ke ko kya kyi kyu kye kyo    か  き  く  け  こ きゃきぃきゅきぇきょ
+    sa si su se so sya syi syu sye syo    さ  し  す  せ  そ しゃしぃしゅしぇしょ
+    ta ti tu te to tya tyi tyu tye tyo    た  ち  つ  て  と ちゃちぃちゅちぇちょ
+    na ni nu ne no nya nyi nyu nye nyo    な  に  ぬ  ね  の にゃにぃにゅにぇにょ
+    ha hi hu he ho hya hyi hyu hye hyo    は  ひ  ふ  へ  ほ ひゃひぃひゅひぇひょ
+    ma mi mu me mo mya myi myu mye myo    ま  み  む  め  も みゃみぃみゅみぇみょ
+    ra ri ru re ro rya ryi ryu rye ryo    ら  り  る  れ  ろ りゃりぃりゅりぇりょ
+    wa wi wu we wo                        わ  うぃう  うぇを
 
-    ga gi gu ge go gya gyi gyu gye gyo    が  ぎ  ぐ  げ  ご ぎゃ ぎぃ ぎゅ ぎぇ ぎょ
-    za zi zu ze zo zya zyi zyu zye zyo    ざ  じ  ず  ぜ  ぞ じゃ じぃ じゅ じぇ じょ
-    da di du de do dya dyi dyu dye dyo    だ  ぢ  づ  で  ど ぢゃ ぢぃ ぢゅ ぢぇ ぢょ
-    ba bi bu be bo bya byi byu bye byo    ば  び  ぶ  べ  ぼ びゃ びぃ びゅ びぇ びょ
-    pa pi pu pe po pya pyi pyu pye pyo    ぱ  ぴ  ぷ  ぺ  ぽ ぴゃ ぴぃ ぴゅ ぴぇ ぴょ
+    ga gi gu ge go gya gyi gyu gye gyo    が ぎ ぐ げ ごぎゃぎぃぎゅぎぇぎょ
+    za zi zu ze zo zya zyi zyu zye zyo    ざ じ ず ぜ ぞじゃじぃじゅじぇじょ
+    da di du de do dya dyi dyu dye dyo    だ ぢ づ で どぢゃぢぃぢゅぢぇぢょ
+    ba bi bu be bo bya byi byu bye byo    ば び ぶ べ ぼびゃびぃびゅびぇびょ
+    pa pi pu pe po pya pyi pyu pye pyo    ぱ ぴ ぷ ぺ ぽぴゃぴぃぴゅぴぇぴょ
 
-      wha  whi  whu  whe  who             うぁ  うぃ  う   うぇ  うぉ
-      kwa  kwi  kwu  kwe  kwo             くぁ  くぃ  くぅ  くぇ  くぉ
-       qa   qi   qu   qe   qo             くぁ  くぃ  く   くぇ  くぉ
-      qya       qyu       qyo             くゃ      くゅ      くょ
-      qwa  qwi  qwu  qwe  qwo             くぁ  くぃ  くぅ  くぇ  くぉ
-      cwa  cwi  cwu  cwe  cwo             くぁ  くぃ  くぅ  くぇ  くぉ
-       ca   ci   cu   ce   co             か   し   く   せ   こ
-      cya  cyi  cyu  cye  cyo             ちゃ  ちぃ  ちゅ  ちぇ  ちょ
-      sha  shi  shu  she  sho             しゃ  し   しゅ  しぇ  しょ
-      swa  swi  swu  swe  swo             すぁ  すぃ  すぅ  すぇ  すぉ
-      cha  chi  chu  che  cho             ちゃ  ち   ちゅ  ちぇ  ちょ
-      tsa  tsi  tsu  tse  tso             つぁ  つぃ  つ   つぇ  つぉ
-      tha  thi  thu  the  tho             てゃ  てぃ  てゅ  てぇ  てょ
-      twa  twi  twu  twe  two             とぁ  とぃ  とぅ  とぇ  とぉ
-           t'i  t'u                           てぃ  とぅ
+      wha  whi  whu  whe  who             うぁうぃう  うぇうぉ
+      kwa  kwi  kwu  kwe  kwo             くぁくぃくぅくぇくぉ
+       qa   qi   qu   qe   qo             くぁくぃく  くぇくぉ
+      qya       qyu       qyo             くゃ    くゅ    くょ
+      qwa  qwi  qwu  qwe  qwo             くぁくぃくぅくぇくぉ
+      cwa  cwi  cwu  cwe  cwo             くぁくぃくぅくぇくぉ
+       ca   ci   cu   ce   co             か  し  く  せ  こ
+      cya  cyi  cyu  cye  cyo             ちゃちぃちゅちぇちょ
+      sha  shi  shu  she  sho             しゃし  しゅしぇしょ
+      swa  swi  swu  swe  swo             すぁすぃすぅすぇすぉ
+      cha  chi  chu  che  cho             ちゃち  ちゅちぇちょ
+      tsa  tsi  tsu  tse  tso             つぁつぃつ  つぇつぉ
+      tha  thi  thu  the  tho             てゃてぃてゅてぇてょ
+      twa  twi  twu  twe  two             とぁとぃとぅとぇとぉ
+           t'i  t'u                           てぃとぅ
                 t'yu                              てゅ
-       fa   fi   fu   fe   fo             ふぁ  ふぃ  ふ   ふぇ  ふぉ
-      fya       fyu       fyo             ふゃ      ふゅ      ふょ
-      hwa  hwi       hwe  hwo             ふぁ  ふぃ      ふぇ  ふぉ
+       fa   fi   fu   fe   fo             ふぁふぃふ  ふぇふぉ
+      fya       fyu       fyo             ふゃ    ふゅ    ふょ
+      hwa  hwi       hwe  hwo             ふぁふぃ    ふぇふぉ
                hwyu                               ふゅ
-      fwa  fwi  fwu  fwe  fwo             ふぁ  ふぃ  ふぅ  ふぇ  ふぉ
+      fwa  fwi  fwu  fwe  fwo             ふぁふぃふぅふぇふぉ
 
-       va   vi   vu   ve   vo             ゔぁ ゔぃ ゔ  ゔぇ ゔぉ
-      vya  vyi  vyu  vye  vyo             ゔゃ ゔぃ ゔゅ ゔぇ ゔょ
-      gwa  gwi  gwu  gwe  gwo             ぐぁ ぐぃ ぐぅ ぐぇ ぐぉ
-       ja   ji   ju   je   jo             じゃ じ  じゅ じぇ じょ
-      jya  jyi  jyu  jye  jyo             じゃ じぃ じゅ じぇ じょ
-      zwa  zwi  zwu  zwe  zwo             ずぁ ずぃ ずぅ ずぇ ずぉ
-      dza  dzi  dzu  dze  dzo             づぁ づぃ づ  づぇ づぉ
-      dha  dhi  dhu  dhe  dho             でゃ でぃ でゅ でぇ でょ
-      dwa  dwi  dwu  dwe  dwo             どぁ どぃ どぅ どぇ どぉ
-           d'i  d'u                           でぃ どぅ
+       va   vi   vu   ve   vo             ゔぁゔぃゔ ゔぇゔぉ
+      vya  vyi  vyu  vye  vyo             ゔゃゔぃゔゅゔぇゔょ
+      gwa  gwi  gwu  gwe  gwo             ぐぁぐぃぐぅぐぇぐぉ
+       ja   ji   ju   je   jo             じゃじ じゅじぇじょ
+      jya  jyi  jyu  jye  jyo             じゃじぃじゅじぇじょ
+      zwa  zwi  zwu  zwe  zwo             ずぁずぃずぅずぇずぉ
+      dza  dzi  dzu  dze  dzo             づぁづぃづ づぇづぉ
+      dha  dhi  dhu  dhe  dho             でゃでぃでゅでぇでょ
+      dwa  dwi  dwu  dwe  dwo             どぁどぃどぅどぇどぉ
+           d'i  d'u                           でぃどぅ
                d'yu                               でゅ
-      pha  phi  phu  phe  pho             ぷぁ ぷぃ ぷぅ ぷぇ ぷぉ
+      pha  phi  phu  phe  pho             ぷぁぷぃぷぅぷぇぷぉ
 
-       xa   xi   xu   xe   xo             ぁ   ぃ   ぅ   ぇ   ぉ (small versions of a/i/u/e/o)
-      xya  xyi  xyu  xye  xyo             ゃ   ぃ   ゅ   ぇ   ょ (small versions of ya/i/yu/e/yo)
-                xtu                               っ         (small tsu)
-               xtsu                               っ         (small tsu)
-       la   li   lu   le   lo             ぁ   ぃ   ぅ   ぇ   ぉ (small versions of a/i/u/e/o)
-      lya  lyi  lyu  lye  lyo             ゃ   ぃ   ゅ   ぇ   ょ (small versions of ya/i/yu/e/yo)
-                ltu                               っ         (small tsu)
-               ltsu                               っ         (small tsu)
-       (repeated consonant other than n)          っ         (small tsu for all but the final instance)
-       n' or nn or xn or ln or n          ん                 (moraic n)
-       ^                                  ｰ                 (chouonpu)
-       -                                  ｰ or -            (contextual: chouonpu after kana, hyphen-minus elsewhere)
-       z;                                 ﾞ                 (dakuten)
-       z:                                 ﾟ                 (handakuten)
+       xa   xi   xu   xe   xo             ぁ  ぃ  ぅ  ぇ  ぉ(small versions of a/i/u/e/o)
+      xya  xyi  xyu  xye  xyo             ゃ  ぃ  ゅ  ぇ  ょ(small versions of ya/i/yu/e/yo)
+                xtu                               っ        (small tsu)
+               xtsu                               っ        (small tsu)
+       la   li   lu   le   lo             ぁ  ぃ  ぅ  ぇ  ぉ(small versions of a/i/u/e/o)
+      lya  lyi  lyu  lye  lyo             ゃ  ぃ  ゅ  ぇ  ょ(small versions of ya/i/yu/e/yo)
+                ltu                               っ        (small tsu)
+               ltsu                               っ        (small tsu)
+       (repeated consonant other than n)          っ        (small tsu for all but the final instance)
+       n' or nn or xn or ln or n          ん                (moraic n)
+       ^                                  ｰ                (chouonpu)
+       -                                  ｰor -            (contextual: chouonpu after kana, hyphen-minus elsewhere)
+       z;                                 ﾞ                (dakuten)
+       z:                                 ﾟ                (handakuten)
        z-                                 -                 (hyphen-minus)
-       z/ or /                            ･                 (middle dot)
-       .                                  ｡                 (ideographic full stop)
-       ,                                  ､                 (ideographic comma)
-       [                                  ｢                 (left corner bracket)
-       ]                                  ｣                 (right corner bracket)
-```
+       z/ or /                            ･                (middle dot)
+       .                                  ｡                (ideographic full stop)
+       ,                                  ､                (ideographic comma)
+       [                                  ｢                (left corner bracket)
+       ]                                  ｣                (right corner bracket)```
