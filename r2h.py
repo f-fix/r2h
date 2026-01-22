@@ -459,410 +459,418 @@ def r2h(*, ibuf, state, obuf, flags, getch):
                 obuf_r2r = small_r + cased(T_R + U_R)
                 state_r2r = ch
                 continue
-            if state_r2r == EMPTY_STATE_R2R:
-                if (
-                    ch
-                    and ch.lower()
-                    in EXTRA_LEAD_R2R_R
-                    + X_R
-                    + K_R
-                    + S_R
-                    + Z_R
-                    + T_R
-                    + N_R
-                    + H_R
-                    + M_R
-                    + Y_R
-                    + R_R
-                    + W_R
-                ):
-                    state_r2r = ch
-                    continue
-            elif state_r2r.lower() in (X_R, L_R):
-                if ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() in (Y_R, T_R):
-                    state_r2r += ch
-                    continue
-                elif ch.lower() == N_R:
-                    obuf_r2r = ch + APOSTROPHE_A
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() in (X_R + Y_R, L_R + Y_R):
-                if ch and (ch.lower() in AUO_R):
-                    obuf_r2r = small_y_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() in (X_R + T_R, L_R + T_R):
+            if (
+                (
+                    state_r2r == EMPTY_STATE_R2R
+                    and (
+                        ch
+                        and ch.lower()
+                        in EXTRA_LEAD_R2R_R
+                        + X_R
+                        + K_R
+                        + S_R
+                        + Z_R
+                        + T_R
+                        + N_R
+                        + H_R
+                        + M_R
+                        + Y_R
+                        + R_R
+                        + W_R
+                    )
+                )
+                or ((state_r2r.lower() in (X_R, L_R)) and (ch.lower() == T_R))
+                or (
+                    (
+                        state_r2r.lower()
+                        in (
+                            X_R,
+                            L_R,
+                            V_R,
+                            J_R,
+                            N_R,
+                            H_R + W_R,
+                            B_R,
+                            M_R,
+                            R_R,
+                            K_R,
+                            G_R,
+                            Q_R,
+                            Z_R,
+                            H_R,
+                            F_R,
+                            S_R,
+                            C_R,
+                            T_R,
+                            D_R,
+                            P_R,
+                            T_R + APOSTROPHE_A,
+                            D_R + APOSTROPHE_A,
+                        )
+                    )
+                    and (ch.lower() == Y_R)
+                )
+                or (
+                    (state_r2r.lower() in (X_R + T_R, L_R + T_R, T_R))
+                    and (ch.lower() == S_R)
+                )
+                or (
+                    (
+                        state_r2r.lower()
+                        in (K_R, G_R, Q_R, Z_R, H_R, F_R, S_R, C_R, T_R, D_R)
+                    )
+                    and (ch.lower() == W_R)
+                )
+                or (
+                    (state_r2r.lower() in (S_R, C_R, T_R, D_R, P_R, W_R))
+                    and (ch.lower() == H_R)
+                )
+                or ((state_r2r.lower() in (T_R, D_R)) and ch.lower() == APOSTROPHE_A)
+                or ((state_r2r.lower() == D_R) and ch.lower() == Z_R)
+            ):
+                state_r2r += ch
+                continue
+            elif (
+                (state_r2r.lower() in (X_R, L_R)) and ch and (ch.lower() in AIUEO_R)
+            ) or (
+                (state_r2r.lower() in (X_R + Y_R, L_R + Y_R))
+                and (ch.lower() in (I_R, E_R))
+            ):
+                obuf_r2r = small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() in (X_R, L_R)) and ch.lower() == N_R:
+                obuf_r2r = ch + APOSTROPHE_A
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (
+                (state_r2r.lower() in (X_R + Y_R, L_R + Y_R))
+                and ch
+                and (ch.lower() in AUO_R)
+            ):
+                obuf_r2r = small_y_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (
+                (state_r2r.lower() in (X_R + T_R, L_R + T_R)) and (ch.lower() == U_R)
+            ) or (
+                (state_r2r.lower() in (X_R + T_R + S_R, L_R + T_R + S_R))
+                and (ch.lower() == U_R)
+            ):
+                obuf_r2r = small_r + state_r2r[1:2] + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() == V_R) and (ch and (ch.lower() in AIUEO_R)):
                 if ch.lower() == U_R:
-                    obuf_r2r = small_r + state_r2r[1:] + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() == S_R:
-                    state_r2r += ch
-                    continue
-            elif state_r2r.lower() in (X_R + T_R + S_R, L_R + T_R + S_R):
-                if ch.lower() == U_R:
-                    obuf_r2r = small_r + state_r2r[1:2] + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() == V_R:
-                if ch and (ch.lower() in AIUEO_R):
-                    if ch.lower() == U_R:
-                        obuf_r2r = onset_r + voicing_r
-                    else:
-                        obuf_r2r = onset_r + voicing_r + small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() == Y_R:
-                    state_r2r += ch
-                    continue
-            elif state_r2r.lower() == V_R + Y_R:
-                if ch and (ch.lower() in AUO_R):
-                    obuf_r2r = onset_r + voicing_r + small_r + state_r2r[1:] + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch and (ch.lower() in AIUEO_R):
+                    obuf_r2r = onset_r + voicing_r
+                else:
                     obuf_r2r = onset_r + voicing_r + small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() in (K_R, G_R):
-                if ch and (ch.lower() in AIUEO_R):
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() == V_R + Y_R) and ch and (ch.lower() in AUO_R):
+                obuf_r2r = onset_r + voicing_r + small_r + state_r2r[1:] + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() == V_R + Y_R) and ch and (ch.lower() in (I_R, E_R)):
+                obuf_r2r = onset_r + voicing_r + small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (
+                (
+                    (
+                        state_r2r.lower()
+                        in (
+                            K_R,
+                            G_R,
+                            C_R,
+                            S_R,
+                            Z_R,
+                            T_R,
+                            D_R,
+                            N_R,
+                            H_R,
+                            B_R,
+                            P_R,
+                            M_R,
+                            R_R,
+                        )
+                    )
+                    and (ch and (ch.lower() in AIUEO_R))
+                )
+                or ((state_r2r.lower() == Y_R) and ch and (ch.lower() in AUO_R))
+                or ((state_r2r.lower() == W_R) and (ch.lower() in (A_R, O_R)))
+            ):
+                obuf_r2r = onset_ch_r
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (
+                (state_r2r.lower() in (K_R + Y_R, G_R + Y_R))
+                and ch
+                and (ch.lower() in AIUEO_R)
+            ):
+                obuf_r2r = onset_i_r
+                if ch.lower() in AUO_R:
+                    obuf_r2r += small_r + state_r2r[1:] + ch
+                else:
+                    obuf_r2r += small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (
+                (state_r2r.lower() in (K_R + W_R, G_R + W_R))
+                and ch
+                and (ch.lower() in AIUEO_R)
+            ):
+                obuf_r2r = onset_u_r + small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() == Q_R) and ch and (ch.lower() in AIUEO_R):
+                if ch.lower() == U_R:
                     obuf_r2r = onset_ch_r
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() in (Y_R, W_R):
-                    state_r2r += ch
-                    continue
-            elif state_r2r.lower() in (K_R + Y_R, G_R + Y_R):
-                if ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = onset_i_r
-                    if ch.lower() in AUO_R:
-                        obuf_r2r += small_r + state_r2r[1:] + ch
-                    else:
-                        obuf_r2r += small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() in (K_R + W_R, G_R + W_R):
-                if ch and (ch.lower() in AIUEO_R):
+                else:
                     obuf_r2r = onset_u_r + small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() == Q_R:
-                if ch and (ch.lower() in AIUEO_R):
-                    if ch.lower() == U_R:
-                        obuf_r2r = onset_ch_r
-                    else:
-                        obuf_r2r = onset_u_r + small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() in (Y_R, W_R):
-                    state_r2r += ch
-                    continue
-            elif state_r2r.lower() == Q_R + Y_R:
-                if ch and (ch.lower() in AUO_R):
-                    obuf_r2r = onset_u_r + small_r + state_r2r[1:] + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() in (S_R, C_R):
-                if ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = onset_ch_r
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() in (H_R, W_R, Y_R):
-                    state_r2r += ch
-                    continue
-            elif state_r2r.lower() in (C_R + H_R, C_R + Y_R):
-                if ch and (ch.lower() in AIUEO_R):
-                    if ch.lower() == I_R:
-                        obuf_r2r = onset_ch_r
-                        if state_r2r.lower() == C_R + Y_R:
-                            obuf_r2r += small_r + ch
-                    elif ch.lower() in AUO_R:
-                        obuf_r2r = onset_i_r + small_y_r + ch
-                    else:
-                        obuf_r2r = onset_i_r + small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() in (C_R + W_R, Q_R + W_R):
-                if ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = onset_u_r + small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() == Z_R:
-                if ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = onset_ch_r
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() in (Y_R, W_R):
-                    state_r2r += ch
-                    continue
-                elif (state_r2r + ch).lower() in (
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() == Q_R + Y_R) and ch and (ch.lower() in AUO_R):
+                obuf_r2r = onset_u_r + small_r + state_r2r[1:] + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() in (C_R + H_R, C_R + Y_R)) and (ch.lower() == I_R):
+                obuf_r2r = onset_ch_r
+                if state_r2r.lower() == C_R + Y_R:
+                    obuf_r2r += small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() in (C_R + H_R, C_R + Y_R)) and (
+                ch.lower() in AUO_R
+            ):
+                obuf_r2r = onset_i_r + small_y_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() in (C_R + H_R, C_R + Y_R)) and (ch.lower() == E_R):
+                obuf_r2r = onset_i_r + small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (
+                (state_r2r.lower() in (C_R + W_R, Q_R + W_R))
+                and ch
+                and (ch.lower() in AIUEO_R)
+            ):
+                obuf_r2r = onset_u_r + small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() == Z_R) and (
+                (state_r2r + ch).lower()
+                in (
                     DAKUTEN_R,
                     HANDAKUTEN_R,
                     Z_R + MIDDOT_A,
                     Z_R + HYPHEN_MINUS_A,
-                ):
-                    obuf_r2r = state_r2r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() == Z_R + Y_R:
-                if ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = onset_i_r
-                    if ch.lower() in AUO_R:
-                        obuf_r2r += small_r + state_r2r[1:] + ch
-                    else:
-                        obuf_r2r += small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() in (S_R + W_R, Z_R + W_R, F_R + W_R):
-                if ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = onset_u_r + small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() in (S_R + H_R, S_R + Y_R):
-                if ch and (ch.lower() in AIUEO_R):
-                    if ch.lower() == I_R and state_r2r.lower() == S_R + H_R:
-                        obuf_r2r = onset_ch_r
-                    elif ch.lower() in AUO_R:
-                        obuf_r2r = onset_i_r + small_y_r + ch
-                    else:
-                        obuf_r2r = onset_i_r + small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() == J_R:
-                if ch and (ch.lower() in AIUEO_R):
-                    if ch.lower() == I_R:
-                        obuf_r2r = onset_ch_r
-                    elif ch.lower() in AUO_R:
-                        obuf_r2r = onset_i_r + small_y_r + ch
-                    else:
-                        obuf_r2r = onset_i_r + small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() == Y_R:
-                    state_r2r += ch
-                    continue
-            elif state_r2r.lower() in (T_R, D_R):
-                if ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = onset_ch_r
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() in (
-                    Z_R if state_r2r[:1].lower() == D_R else S_R,
-                    H_R,
-                    Y_R,
-                    W_R,
-                    APOSTROPHE_A,
-                ):
-                    state_r2r += ch
-                    continue
-            elif state_r2r.lower() in (T_R + S_R, D_R + Z_R):
-                if ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = onset_u_r
-                    if ch.lower() != U_R:
-                        obuf_r2r += small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() in (T_R + H_R, D_R + H_R):
-                if ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = onset_e_r
-                    if ch.lower() in AUO_R:
-                        obuf_r2r += small_y_r + ch
-                    else:
-                        obuf_r2r += small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() in (J_R + Y_R, T_R + Y_R, D_R + Y_R):
-                if ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = onset_i_r
-                    if ch.lower() in AUO_R:
-                        obuf_r2r += small_r + state_r2r[1:] + ch
-                    else:
-                        obuf_r2r += small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() in (T_R + W_R, D_R + W_R):
-                if ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = onset_o_r + small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() in (T_R + APOSTROPHE_A, D_R + APOSTROPHE_A):
-                if ch.lower() == I_R:
-                    obuf_r2r = onset_e_r + small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() == U_R:
-                    obuf_r2r = onset_o_r + small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() == Y_R:
-                    state_r2r += ch
-                    continue
-            elif state_r2r.lower() in (
-                T_R + APOSTROPHE_A + Y_R,
-                D_R + APOSTROPHE_A + Y_R,
+                )
             ):
-                if ch.lower() == U_R:
-                    obuf_r2r = onset_e_r + small_r + state_r2r[2:] + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() == N_R:
-                if ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = onset_ch_r
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() == Y_R:
-                    state_r2r += ch
-                    continue
-                elif ch.lower() in (N_R, APOSTROPHE_A):
-                    obuf_r2r = onset_r + APOSTROPHE_A
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
+                obuf_r2r = state_r2r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() == Z_R + Y_R) and ch and (ch.lower() in AIUEO_R):
+                obuf_r2r = onset_i_r
+                if ch.lower() in AUO_R:
+                    obuf_r2r += small_r + state_r2r[1:] + ch
                 else:
-                    obuf_r2r = onset_r + APOSTROPHE_A
-                    state_r2r = EMPTY_STATE_R2R
-                    ibuf_r2r = ch + ibuf_r2r
-                    continue
-            elif state_r2r.lower() == N_R + Y_R:
-                if ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = onset_i_r
-                    if ch.lower() in AUO_R:
-                        obuf_r2r += small_y_r + ch
-                    else:
-                        obuf_r2r += small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() == H_R:
-                if ch and (ch.lower() in AIUEO_R):
+                    obuf_r2r += small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (
+                (state_r2r.lower() in (S_R + W_R, Z_R + W_R, F_R + W_R))
+                and ch
+                and (ch.lower() in AIUEO_R)
+            ):
+                obuf_r2r = onset_u_r + small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (
+                (state_r2r.lower() in (S_R + H_R, S_R + Y_R))
+                and ch
+                and (ch.lower() in AIUEO_R)
+            ):
+                if ch.lower() == I_R and state_r2r.lower() == S_R + H_R:
                     obuf_r2r = onset_ch_r
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() in (Y_R, W_R):
-                    state_r2r += ch
-                    continue
-            elif state_r2r.lower() == H_R + Y_R:
-                if ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = onset_i_r
-                    if ch.lower() in AUO_R:
-                        obuf_r2r += small_r + state_r2r[1:] + ch
-                    else:
-                        obuf_r2r += small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() == H_R + W_R:
-                if ch and (ch.lower() in AIUEO_R) and ch.lower() != U_R:
-                    obuf_r2r = onset_u_r + small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() == Y_R:
-                    state_r2r += ch
-                    continue
-            elif state_r2r.lower() == H_R + W_R + Y_R:
+                elif ch.lower() in AUO_R:
+                    obuf_r2r = onset_i_r + small_y_r + ch
+                else:
+                    obuf_r2r = onset_i_r + small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() == J_R) and ch and (ch.lower() in AIUEO_R):
+                if ch.lower() == I_R:
+                    obuf_r2r = onset_ch_r
+                elif ch.lower() in AUO_R:
+                    obuf_r2r = onset_i_r + small_y_r + ch
+                else:
+                    obuf_r2r = onset_i_r + small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (
+                (state_r2r.lower() in (T_R + S_R, D_R + Z_R))
+                and ch
+                and (ch.lower() in AIUEO_R)
+            ):
+                obuf_r2r = onset_u_r
+                if ch.lower() != U_R:
+                    obuf_r2r += small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (
+                (state_r2r.lower() in (T_R + H_R, D_R + H_R))
+                and ch
+                and (ch.lower() in AIUEO_R)
+            ):
+                obuf_r2r = onset_e_r
+                if ch.lower() in AUO_R:
+                    obuf_r2r += small_y_r + ch
+                else:
+                    obuf_r2r += small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (
+                (state_r2r.lower() in (J_R + Y_R, T_R + Y_R, D_R + Y_R))
+                and ch
+                and (ch.lower() in AIUEO_R)
+            ):
+                obuf_r2r = onset_i_r
+                if ch.lower() in AUO_R:
+                    obuf_r2r += small_r + state_r2r[1:] + ch
+                else:
+                    obuf_r2r += small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (
+                (state_r2r.lower() in (T_R + W_R, D_R + W_R))
+                and ch
+                and (ch.lower() in AIUEO_R)
+            ):
+                obuf_r2r = onset_o_r + small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() in (T_R + APOSTROPHE_A, D_R + APOSTROPHE_A)) and (
+                ch.lower() == I_R
+            ):
+                obuf_r2r = onset_e_r + small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() in (T_R + APOSTROPHE_A, D_R + APOSTROPHE_A)) and (
+                ch.lower() == U_R
+            ):
+                obuf_r2r = onset_o_r + small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (
+                state_r2r.lower()
+                in (
+                    T_R + APOSTROPHE_A + Y_R,
+                    D_R + APOSTROPHE_A + Y_R,
+                )
+            ) and (ch.lower() == U_R):
+                obuf_r2r = onset_e_r + small_r + state_r2r[2:] + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() == N_R) and (ch.lower() in (N_R, APOSTROPHE_A)):
+                obuf_r2r = onset_r + APOSTROPHE_A
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() == N_R) and (
+                (not ch)
+                or (
+                    (ch.lower() not in AIUEO_R)
+                    and (ch.lower() not in (N_R, APOSTROPHE_A))
+                )
+            ):
+                obuf_r2r = onset_r + APOSTROPHE_A
+                state_r2r = EMPTY_STATE_R2R
+                ibuf_r2r = ch + ibuf_r2r
+                continue
+            elif (state_r2r.lower() == N_R + Y_R) and ch and (ch.lower() in AIUEO_R):
+                obuf_r2r = onset_i_r
+                if ch.lower() in AUO_R:
+                    obuf_r2r += small_y_r + ch
+                else:
+                    obuf_r2r += small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() == H_R + Y_R) and ch and (ch.lower() in AIUEO_R):
+                obuf_r2r = onset_i_r
+                if ch.lower() in AUO_R:
+                    obuf_r2r += small_r + state_r2r[1:] + ch
+                else:
+                    obuf_r2r += small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (
+                (state_r2r.lower() == H_R + W_R)
+                and ch
+                and (ch.lower() in AIUEO_R)
+                and ch.lower() != U_R
+            ):
+                obuf_r2r = onset_u_r + small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() == H_R + W_R + Y_R) and (ch.lower() == U_R):
+                obuf_r2r = onset_u_r + small_r + state_r2r[2:] + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() == F_R) and ch and (ch.lower() in AIUEO_R):
+                obuf_r2r = onset_u_r
+                if ch.lower() != U_R:
+                    obuf_r2r += small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() == F_R + Y_R) and ch and (ch.lower() in AUO_R):
+                obuf_r2r = onset_u_r + small_y_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (
+                (state_r2r.lower() in (B_R + Y_R, M_R + Y_R, R_R + Y_R))
+                and ch
+                and (ch.lower() in AIUEO_R)
+            ):
+                obuf_r2r = onset_i_r
+                if ch.lower() in AUO_R:
+                    obuf_r2r += small_r + state_r2r[1:] + ch
+                else:
+                    obuf_r2r += small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() == P_R + Y_R) and ch and (ch.lower() in AIUEO_R):
+                obuf_r2r = onset_i_r
+                if ch.lower() in AUO_R:
+                    obuf_r2r += small_r + state_r2r[1:] + ch
+                else:
+                    obuf_r2r += small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() == P_R + H_R) and ch and (ch.lower() in AIUEO_R):
+                obuf_r2r = onset_u_r + small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif ((state_r2r.lower() == Y_R) and (ch.lower() == I_R)) or (
+                (state_r2r.lower() == W_R) and (ch.lower() == U_R)
+            ):
+                obuf_r2r = ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() == Y_R) and (ch.lower() == E_R):
+                obuf_r2r = cased(I_R) + small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() == W_R) and (ch.lower() in (I_R, E_R)):
+                obuf_r2r = cased(U_R) + small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
+            elif (state_r2r.lower() == W_R + H_R) and ch and (ch.lower() in AIUEO_R):
                 if ch.lower() == U_R:
-                    obuf_r2r = onset_u_r + small_r + state_r2r[2:] + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() == F_R:
-                if ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = onset_u_r
-                    if ch.lower() != U_R:
-                        obuf_r2r += small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() == W_R:
-                    state_r2r += ch
-                    continue
-                elif ch.lower() == Y_R:
-                    state_r2r += ch
-                    continue
-            elif state_r2r.lower() == F_R + Y_R:
-                if ch and (ch.lower() in AUO_R):
-                    obuf_r2r = onset_u_r + small_y_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() in (B_R, M_R, R_R):
-                if ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = onset_ch_r
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() == Y_R:
-                    state_r2r += ch
-                    continue
-            elif state_r2r.lower() in (B_R + Y_R, M_R + Y_R, R_R + Y_R):
-                if ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = onset_i_r
-                    if ch.lower() in AUO_R:
-                        obuf_r2r += small_r + state_r2r[1:] + ch
-                    else:
-                        obuf_r2r += small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() == P_R:
-                if ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = onset_ch_r
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() in (Y_R, H_R):
-                    state_r2r += ch
-                    continue
-            elif state_r2r.lower() == P_R + Y_R:
-                if ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = onset_i_r
-                    if ch.lower() in AUO_R:
-                        obuf_r2r += small_r + state_r2r[1:] + ch
-                    else:
-                        obuf_r2r += small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() == P_R + H_R:
-                if ch and (ch.lower() in AIUEO_R):
-                    obuf_r2r = onset_u_r + small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() == Y_R:
-                if ch and (ch.lower() in AUO_R):
-                    obuf_r2r = onset_ch_r
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() == I_R:
                     obuf_r2r = ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() == E_R:
-                    obuf_r2r = cased(I_R) + small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-            elif state_r2r.lower() == W_R:
-                if ch.lower() in (A_R, O_R):
-                    obuf_r2r = onset_ch_r
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() == U_R:
-                    obuf_r2r = ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() in (I_R, E_R):
-                    obuf_r2r = cased(U_R) + small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
-                elif ch.lower() == H_R:
-                    state_r2r += ch
-                    continue
-            elif state_r2r.lower() == W_R + H_R:
-                if ch and (ch.lower() in AIUEO_R):
-                    if ch.lower() == U_R:
-                        obuf_r2r = ch
-                    else:
-                        obuf_r2r = onset_r + small_r + ch
-                    state_r2r = EMPTY_STATE_R2R
-                    continue
+                else:
+                    obuf_r2r = onset_r + small_r + ch
+                state_r2r = EMPTY_STATE_R2R
+                continue
             if state_r2r:
                 # print(f"r2r fallback!!! {dict(state_r2r=state_r2r, ch=ch)}")
                 obuf_r2r = state_r2r[:1]
