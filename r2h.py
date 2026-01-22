@@ -46,7 +46,6 @@ some of the differences from some other romaji input methods etc.:
 
 BACKSPACE_A = "\b"
 RUBOUT_A = "\x7f"
-APOSTROPHE_A = "'"
 PUNCT_A = ".[],/"
 PUNCT_K = "｡｢｣､･"
 MIDDOT_A = PUNCT_A[4]
@@ -55,62 +54,85 @@ CHOUONPU_A = "^"
 CHOUONPU_K = "ｰ"
 HYPHEN_MINUS_A = "-"
 WO_K = "ｦ"
-X_R = "x"
 X_K = "ｧｨｩｪｫ"
 XYAYUYO_K = "ｬｭｮ"
 XTU_K = "ｯ"
 AIUEO_R = "aiueo"
+AIUEO_R_SET = frozenset(AIUEO_R)
 AIUEO_K = "ｱｲｳｴｵ"
-A_R = AIUEO_R[0]
-I_R = AIUEO_R[1]
-U_R = AIUEO_R[2]
 U_K = AIUEO_K[2]
-E_R = AIUEO_R[3]
-O_R = AIUEO_R[4]
-AUO_R = A_R + U_R + O_R
+AUO_R = "auo"
+AUO_R_SET = frozenset(AUO_R)
 KSTNHMR_R = "kstnhmr"
-K_R = KSTNHMR_R[0]
 K_K = "ｶｷｸｹｺ"
-S_R = KSTNHMR_R[1]
 S_K = "ｻｼｽｾｿ"
-T_R = KSTNHMR_R[2]
 T_K = "ﾀﾁﾂﾃﾄ"
 TU_K = T_K[2]
-N_R = KSTNHMR_R[3]
 N_K = "ﾅﾆﾇﾈﾉ"
-H_R = KSTNHMR_R[4]
 H_K = "ﾊﾋﾌﾍﾎ"
 HU_K = H_K[2]
-M_R = KSTNHMR_R[5]
 M_K = "ﾏﾐﾑﾒﾓ"
-Y_R = "y"
 YAYUYO_K = "ﾔﾕﾖ"
 R_K = "ﾗﾘﾙﾚﾛ"
-R_R = KSTNHMR_R[6]
-XKSTNHMR_R = X_R + KSTNHMR_R
+XKSTNHMR_R = "x" + KSTNHMR_R
 XKSTNHMR_K = [X_K, K_K, S_K, T_K, N_K, H_K, M_K, R_K]
 WA_K = "ﾜ"
-W_R = "w"
 NN_K = "ﾝ"
-Z_R = "z"
 DAKUTEN_K = "ﾞ"
-DAKUTEN_R = Z_R + ";"
+DAKUTEN_R = "z;"
 HANDAKUTEN_K = "ﾟ"
-HANDAKUTEN_R = Z_R + ":"
-L_R = "l"
-V_R = "v"
-G_R = "g"
-Q_R = "q"
-C_R = "c"
-J_R = "j"
-D_R = "d"
-B_R = "b"
-F_R = "f"
-P_R = "p"
-YWZ_R = Y_R + W_R + Z_R
+HANDAKUTEN_R = "z:"
+YWZ_R = "ywz"
 LEAD_R = XKSTNHMR_R + YWZ_R
-EXTRA_LEAD_R2R_R = L_R + V_R + G_R + Q_R + C_R + J_R + D_R + B_R + F_R + P_R
-
+EXTRA_LEAD_R2R_R = "lvgqcjdbfp"
+LEAD_R2R_R_SET = frozenset(LEAD_R + EXTRA_LEAD_R2R_R)
+LEAD_Y_R2R_R_SET = frozenset("xlvjnbmrkgqzhfsctdp") | frozenset({"hw", "t'", "d'"})
+LEAD_W_R2R_R_SET = frozenset("kgqzhfsctd")
+LEAD_H_R2R_R_SET = frozenset("sctdpw")
+LEAD_AIUEO_R2R_R_SET = frozenset("kgcsztdnhbpmr")
+ONSET_I_AIUEO_R2R_R_SET = frozenset(
+    {
+        "ky",
+        "gy",
+        "zy",
+        "jy",
+        "ty",
+        "dy",
+        "ny",
+        "by",
+        "my",
+        "ry",
+        "hy",
+        "py",
+    }
+)
+ONSET_U_AIUEO_R_SET = frozenset(
+    {
+        "kw",
+        "gw",
+        "cw",
+        "qw",
+        "sw",
+        "zw",
+        "fw",
+        "ph",
+    }
+)
+ONSET_U_AIEO_R_SET = frozenset({"q", "ts", "dz", "hw", "f"})
+ONSET_DEVOICING_MAP = dict(
+    l="x",
+    v="u",
+    q="k",
+    g="k",
+    z="s",
+    j="s",
+    d="t",
+    f="h",
+    b="h",
+    p="h",
+)
+HAS_DAKUTEN_R_SET = frozenset("vgjzdb")
+HAS_HANDAKUTEN_R_SET = frozenset("p")
 ALL_R = AIUEO_R + XKSTNHMR_R + YWZ_R + EXTRA_LEAD_R2R_R
 assert sorted(ALL_R) == [chr(cc) for cc in range(ord("a"), 1 + ord("z"))]
 
@@ -135,9 +157,9 @@ ALL_K = (
     + DAKUTEN_K
     + HANDAKUTEN_K
 )
-assert (  # Ensure all the halfwidth kana are represented and each only once
-    ALL_K == bytes(range(0xA1, 0xE0)).decode("cp932")
-)
+assert ALL_K == bytes(range(0xA1, 0xE0)).decode(
+    "cp932"
+)  # Ensure all the halfwidth kana are represented and each only once
 
 
 def r2k_one_to_one(*, ibuf, state, obuf, flags, getch):
@@ -172,11 +194,11 @@ def r2k_one_to_one(*, ibuf, state, obuf, flags, getch):
        ma mi mu me mo        ﾏ  ﾐ  ﾑ  ﾒ  ﾓ
        ya    yu    yo        ﾔ     ﾕ     ﾖ
        ra ri ru re ro        ﾗ  ﾘ  ﾙ  ﾚ  ﾛ
-       wa          wo        ﾜ     ｳ     ｦ
+       wa          wo        ﾜ           ｦ
       xya   xyu   xyo        ｬ     ｭ     ｮ     (small versions of ya/yu/yo)
        xa xi xu xe xo        ｧ  ｨ  ｩ  ｪ  ｫ     (small versions of a/i/u/e/o)
             xtu                    ｯ           (small tsu)
-       n'                    ﾝ                 (moraic n)
+             n'                    ﾝ           (moraic n)
 
        ^                     ｰ                 (chouonpu)
        -                     ｰ or -            (contextual: chouonpu after kana, hyphen-minus elsewhere)
@@ -213,9 +235,9 @@ def r2k_one_to_one(*, ibuf, state, obuf, flags, getch):
             auo_idx = AUO_R.find(ch.lower()) if ch else -1
             punct_idx = PUNCT_A.find(ch.lower()) if ch else -1
             state_xkstnhmr_idx = XKSTNHMR_R.find(state.lower()) if state else -1
-            if (state.lower() == N_R) and (ch.lower() == APOSTROPHE_A):
+            if (state.lower() == "n") and (ch.lower() == "'"):
                 ch, state = NN_K, ""
-            elif (state.lower() == X_R + Y_R) and (auo_idx >= 0):
+            elif (state.lower() == "xy") and (auo_idx >= 0):
                 ch, state = XYAYUYO_K[auo_idx], ""
                 aiueo_idx = -1
             elif (state_xkstnhmr_idx >= 0) and (aiueo_idx >= 0):
@@ -224,25 +246,25 @@ def r2k_one_to_one(*, ibuf, state, obuf, flags, getch):
                     "",
                 )
                 aiueo_idx = -1
-            elif state.lower() == Y_R and (auo_idx >= 0):
+            elif state.lower() == "y" and (auo_idx >= 0):
                 ch, state = YAYUYO_K[auo_idx], ""
                 aiueo_idx = -1
-            elif state.lower() == W_R and (aiueo_idx >= 0):
-                if ch.lower() == A_R:
+            elif state.lower() == "w" and (aiueo_idx >= 0):
+                if ch.lower() == "a":
                     ch = WA_K
                     state = ""
                     aiueo_idx = -1
-                elif ch.lower() == O_R:
+                elif ch.lower() == "o":
                     ch = WO_K
                     state = ""
                     aiueo_idx = -1
-            elif (state.lower() == X_R) and ch.lower() in (Y_R, T_R):
+            elif (state.lower() == "x") and ch.lower() in ("y", "t"):
                 state += ch
                 continue
-            elif state.lower() == X_R + T_R and ch.lower() == U_R:
+            elif state.lower() == "xt" and ch.lower() == "u":
                 ch, state = XTU_K, ""
                 aiueo_idx = -1
-            elif state.lower() == Z_R:
+            elif state.lower() == "z":
                 if (state + ch).lower() == HANDAKUTEN_R:
                     ch, state = HANDAKUTEN_K, ""
                     iueo_idx, punct_idx = -1, -1
@@ -363,7 +385,7 @@ def r2h(*, ibuf, state, obuf, flags, getch):
                 ltu                               ｯ         (small tsu)
                ltsu                               ｯ         (small tsu)
        (repeated consonant other than n)          ｯ         (small tsu for all but the final instance)
-       n' or nn or xn or ln or n          ﾝ                 (moraic n)
+       n' or nn or xn or ln or n                  ﾝ         (moraic n)
        ^                                  ｰ                 (chouonpu)
        -                                  ｰ or -            (contextual: chouonpu after kana, hyphen-minus elsewhere)
        z;                                 ﾞ                 (dakuten)
@@ -401,389 +423,215 @@ def r2h(*, ibuf, state, obuf, flags, getch):
                 if DEBUG_REWRITER:
                     global debug_original
                     debug_original += ch
-            if prefix and (ch.lower() in (BACKSPACE_A, RUBOUT_A)):
+            lch = ch.lower()
+            lprefix = prefix.lower()
+            lprefix_ch = lprefix + lch
+            if prefix and (lch in (BACKSPACE_A, RUBOUT_A)):
                 prefix = prefix[:-1]
                 continue
 
             def cased(s):
-                if prefix != prefix.lower():
+                if prefix != lprefix:
                     s = s.upper()
                 return s
 
             voicing_r = ""
-            if prefix[:1].lower() in (V_R, G_R, J_R, Z_R, D_R, B_R):
+            if lprefix[:1] in HAS_DAKUTEN_R_SET:
                 voicing_r = cased(DAKUTEN_R)
-            elif prefix[:1].lower() == P_R:
+            elif lprefix[:1] in HAS_HANDAKUTEN_R_SET:
                 voicing_r = cased(HANDAKUTEN_R)
             onset_r = prefix[:1]
-            onset_r = (
-                cased(
-                    {
-                        L_R: X_R,
-                        V_R: U_R,
-                        Q_R: K_R,
-                        G_R: K_R,
-                        Z_R: S_R,
-                        J_R: S_R,
-                        D_R: T_R,
-                        F_R: H_R,
-                        B_R: H_R,
-                        P_R: H_R,
-                    }.get(onset_r.lower(), "")
-                )
-                or onset_r
-            )
-            if (prefix + ch)[:2].lower() == W_R + H_R:
-                onset_r = cased(U_R)
-            elif prefix[:1].lower() == C_R:
-                if (prefix[1:2] or ch).lower() in (I_R, E_R):
-                    onset_r = cased(S_R)
-                elif (prefix[1:2] or ch).lower() in (H_R, Y_R):
-                    onset_r = cased(T_R)
+            onset_r = cased(ONSET_DEVOICING_MAP.get(onset_r.lower(), "")) or onset_r
+            if lprefix_ch[:2] == "wh":
+                onset_r = cased("u")
+            elif lprefix[:1] == "c":
+                if (lprefix[1:2] or lch) in ("i", "e"):
+                    onset_r = cased("s")
+                elif (lprefix[1:2] or lch) in ("h", "y"):
+                    onset_r = cased("t")
                 else:
-                    onset_r = cased(K_R)
+                    onset_r = cased("k")
             onset_ch_r = onset_r + ch + voicing_r
-            onset_i_r = onset_r + cased(I_R) + voicing_r
-            onset_u_r = onset_r + cased(U_R) + voicing_r
-            onset_e_r = onset_r + cased(E_R) + voicing_r
-            onset_o_r = onset_r + cased(O_R) + voicing_r
-            small_r = cased(X_R)
-            small_y_r = small_r + cased(Y_R)
-            if prefix and (prefix.lower() != N_R) and (ch.lower() == prefix.lower()):
-                obuf_r2r = small_r + cased(T_R + U_R)
+            onset_i_r = onset_r + cased("i") + voicing_r
+            onset_u_r = onset_r + cased("u") + voicing_r
+            onset_e_r = onset_r + cased("e") + voicing_r
+            onset_o_r = onset_r + cased("o") + voicing_r
+            small_r = cased("x")
+            small_y_r = small_r + cased("y")
+            if prefix and (lprefix != "n") and (lch == lprefix):
+                obuf_r2r = small_r + cased("tu")
                 prefix = ch
                 continue
             if (
-                (
-                    prefix == ""
-                    and (
-                        ch
-                        and ch.lower()
-                        in EXTRA_LEAD_R2R_R
-                        + X_R
-                        + K_R
-                        + S_R
-                        + Z_R
-                        + T_R
-                        + N_R
-                        + H_R
-                        + M_R
-                        + Y_R
-                        + R_R
-                        + W_R
-                    )
-                )
-                or ((prefix.lower() in (X_R, L_R)) and (ch.lower() == T_R))
-                or (
-                    (
-                        prefix.lower()
-                        in (
-                            X_R,
-                            L_R,
-                            V_R,
-                            J_R,
-                            N_R,
-                            H_R + W_R,
-                            B_R,
-                            M_R,
-                            R_R,
-                            K_R,
-                            G_R,
-                            Q_R,
-                            Z_R,
-                            H_R,
-                            F_R,
-                            S_R,
-                            C_R,
-                            T_R,
-                            D_R,
-                            P_R,
-                            T_R + APOSTROPHE_A,
-                            D_R + APOSTROPHE_A,
-                        )
-                    )
-                    and (ch.lower() == Y_R)
-                )
-                or (
-                    (prefix.lower() in (X_R + T_R, L_R + T_R, T_R))
-                    and (ch.lower() == S_R)
-                )
-                or (
-                    (
-                        prefix.lower()
-                        in (K_R, G_R, Q_R, Z_R, H_R, F_R, S_R, C_R, T_R, D_R)
-                    )
-                    and (ch.lower() == W_R)
-                )
-                or (
-                    (prefix.lower() in (S_R, C_R, T_R, D_R, P_R, W_R))
-                    and (ch.lower() == H_R)
-                )
-                or ((prefix.lower() in (T_R, D_R)) and ch.lower() == APOSTROPHE_A)
-                or ((prefix.lower() == D_R) and ch.lower() == Z_R)
+                (prefix == "" and lch in LEAD_R2R_R_SET)
+                or ((lprefix in ("x", "l")) and (lch == "t"))
+                or ((lprefix in LEAD_Y_R2R_R_SET) and (lch == "y"))
+                or ((lprefix in ("xt", "lt", "t")) and (lch == "s"))
+                or ((lprefix in LEAD_W_R2R_R_SET) and (lch == "w"))
+                or ((lprefix in LEAD_H_R2R_R_SET) and (lch == "h"))
+                or ((lprefix in ("t", "d")) and lch == "'")
+                or ((lprefix == "d") and lch == "z")
             ):
                 prefix += ch
                 continue
-            elif (
-                (prefix.lower() in (X_R, L_R)) and ch and (ch.lower() in AIUEO_R)
-            ) or (
-                (prefix.lower() in (X_R + Y_R, L_R + Y_R))
-                and (ch.lower() in (I_R, E_R))
+            elif ((lprefix in ("x", "l")) and lch in AIUEO_R_SET) or (
+                (lprefix in ("xy", "ly")) and (lch in ("i", "e"))
             ):
                 obuf_r2r = small_r + ch
                 prefix = ""
                 continue
-            elif (prefix.lower() in (X_R, L_R)) and ch.lower() == N_R:
-                obuf_r2r = ch + APOSTROPHE_A
+            elif (lprefix in ("x", "l")) and lch == "n":
+                obuf_r2r = ch + "'"
                 prefix = ""
                 continue
-            elif (
-                (prefix.lower() in (X_R + Y_R, L_R + Y_R))
-                and ch
-                and (ch.lower() in AUO_R)
-            ):
+            elif (lprefix in ("xy", "ly")) and lch in AUO_R_SET:
                 obuf_r2r = small_y_r + ch
                 prefix = ""
                 continue
-            elif (
-                (prefix.lower() in (X_R + T_R, L_R + T_R)) and (ch.lower() == U_R)
-            ) or (
-                (prefix.lower() in (X_R + T_R + S_R, L_R + T_R + S_R))
-                and (ch.lower() == U_R)
+            elif ((lprefix in ("xt", "lt")) and (lch == "u")) or (
+                (lprefix in ("xts", "lts")) and (lch == "u")
             ):
                 obuf_r2r = small_r + prefix[1:2] + ch
                 prefix = ""
                 continue
-            elif (prefix.lower() == V_R) and (ch.lower() == U_R):
+            elif (lprefix == "v") and (lch == "u"):
                 obuf_r2r = onset_r + voicing_r
                 prefix = ""
                 continue
-            elif (
-                (prefix.lower() == V_R)
-                and (ch and (ch.lower() in AIUEO_R))
-                and (ch.lower() != U_R)
-            ) or ((prefix.lower() == V_R + Y_R) and (ch.lower() in (I_R, E_R))):
+            elif ((lprefix == "v") and (lch in AIUEO_R_SET) and (lch != "u")) or (
+                (lprefix == "vy") and (lch in ("i", "e"))
+            ):
                 obuf_r2r = onset_r + voicing_r + small_r + ch
                 prefix = ""
                 continue
-            elif (prefix.lower() == V_R + Y_R) and ch and (ch.lower() in AUO_R):
+            elif (lprefix == "vy") and lch in AUO_R_SET:
                 obuf_r2r = onset_r + voicing_r + small_r + prefix[1:] + ch
                 prefix = ""
                 continue
             elif (
-                (
-                    (
-                        prefix.lower()
-                        in (
-                            K_R,
-                            G_R,
-                            C_R,
-                            S_R,
-                            Z_R,
-                            T_R,
-                            D_R,
-                            N_R,
-                            H_R,
-                            B_R,
-                            P_R,
-                            M_R,
-                            R_R,
-                        )
-                    )
-                    and (ch and (ch.lower() in AIUEO_R))
-                )
-                or ((prefix.lower() == Y_R) and ch and (ch.lower() in AUO_R))
-                or ((prefix.lower() == W_R) and (ch.lower() in (A_R, O_R)))
-                or ((prefix.lower() == Q_R) and (ch.lower() == U_R))
-                or ((prefix.lower() in (C_R + H_R, C_R + Y_R)) and (ch.lower() == I_R))
+                ((lprefix in LEAD_AIUEO_R2R_R_SET) and (lch in AIUEO_R_SET))
+                or ((lprefix == "y") and lch in AUO_R_SET)
+                or ((lprefix == "w") and (lch in ("a", "o")))
+                or ((lprefix == "q") and (lch == "u"))
+                or ((lprefix in ("ch", "cy")) and (lch == "i"))
             ):
                 obuf_r2r = onset_ch_r
-                if prefix.lower() == C_R + Y_R:
+                if lprefix == "cy":
                     obuf_r2r += small_r + ch
                 prefix = ""
                 continue
-            elif (
-                (
-                    prefix.lower()
-                    in (
-                        K_R + Y_R,
-                        G_R + Y_R,
-                        Z_R + Y_R,
-                        J_R + Y_R,
-                        T_R + Y_R,
-                        D_R + Y_R,
-                        N_R + Y_R,
-                        B_R + Y_R,
-                        M_R + Y_R,
-                        R_R + Y_R,
-                        H_R + Y_R,
-                        P_R + Y_R,
-                    )
-                )
-                and ch
-                and (ch.lower() in AIUEO_R)
-            ):
+            elif (lprefix in ONSET_I_AIUEO_R2R_R_SET) and (lch in AIUEO_R_SET):
                 obuf_r2r = onset_i_r
-                if ch.lower() in AUO_R:
+                if lch in AUO_R_SET:
                     obuf_r2r += small_r + prefix[1:] + ch
                 else:
                     obuf_r2r += small_r + ch
                 prefix = ""
                 continue
             elif (
-                (
-                    (
-                        prefix.lower()
-                        in (
-                            K_R + W_R,
-                            G_R + W_R,
-                            C_R + W_R,
-                            Q_R + W_R,
-                            S_R + W_R,
-                            Z_R + W_R,
-                            F_R + W_R,
-                            P_R + H_R,
-                        )
-                    )
-                    and ch
-                    and (ch.lower() in AIUEO_R)
-                )
+                ((lprefix in ONSET_U_AIUEO_R_SET) and (lch in AIUEO_R_SET))
                 or (
-                    (prefix.lower() in (Q_R, T_R + S_R, D_R + Z_R, H_R + W_R, F_R))
-                    and ch
-                    and (ch.lower() in AIUEO_R)
-                    and ch.lower() != U_R
+                    (lprefix in ONSET_U_AIEO_R_SET)
+                    and (lch in AIUEO_R_SET)
+                    and lch != "u"
                 )
-                or ((prefix.lower() == H_R + W_R + Y_R) and (ch.lower() == U_R))
+                or ((lprefix == "hwy") and (lch == "u"))
             ):
                 obuf_r2r = onset_u_r + small_r + prefix[2:] + ch
                 prefix = ""
                 continue
-            elif (
-                (prefix.lower() in (T_R + S_R, D_R + Z_R, F_R))
-                and (ch.lower() == U_R)
-                and (ch.lower() in AIUEO_R)
-            ):
+            elif (lprefix in ("ts", "dz", "f")) and (lch == "u"):
                 obuf_r2r = onset_u_r
                 prefix = ""
                 continue
-            elif (
-                (prefix.lower() in (Q_R + Y_R, F_R + Y_R))
-                and ch
-                and (ch.lower() in AUO_R)
-            ):
+            elif (lprefix in ("qy", "fy")) and lch in AUO_R_SET:
                 obuf_r2r = onset_u_r + small_r + prefix[1:] + ch
                 prefix = ""
                 continue
-            elif (prefix.lower() in (C_R + H_R, C_R + Y_R)) and (ch.lower() in AUO_R):
+            elif (lprefix in ("ch", "cy")) and (lch in AUO_R_SET):
                 obuf_r2r = onset_i_r + small_y_r + ch
                 prefix = ""
                 continue
-            elif (prefix.lower() in (C_R + H_R, C_R + Y_R)) and (ch.lower() == E_R):
+            elif (lprefix in ("ch", "cy")) and (lch == "e"):
                 obuf_r2r = onset_i_r + small_r + ch
                 prefix = ""
                 continue
-            elif (prefix.lower() == Z_R) and (
-                (prefix + ch).lower()
+            elif (lprefix == "z") and (
+                lprefix_ch
                 in (
                     DAKUTEN_R,
                     HANDAKUTEN_R,
-                    Z_R + MIDDOT_A,
-                    Z_R + HYPHEN_MINUS_A,
+                    "z" + MIDDOT_A,
+                    "z" + HYPHEN_MINUS_A,
                 )
             ):
                 obuf_r2r = prefix + ch
                 prefix = ""
                 continue
-            elif (
-                (prefix.lower() in (S_R + H_R, S_R + Y_R, J_R))
-                and ch
-                and (ch.lower() in AIUEO_R)
-            ):
-                if ch.lower() == I_R and prefix.lower() in (S_R + H_R, J_R):
+            elif (lprefix in ("sh", "sy", "j")) and lch in AIUEO_R_SET:
+                if lch == "i" and lprefix in ("sh", "j"):
                     obuf_r2r = onset_ch_r
-                elif ch.lower() in AUO_R:
+                elif lch in AUO_R_SET:
                     obuf_r2r = onset_i_r + small_y_r + ch
                 else:
                     obuf_r2r = onset_i_r + small_r + ch
                 prefix = ""
                 continue
-            elif (
-                (prefix.lower() in (T_R + H_R, D_R + H_R))
-                and ch
-                and (ch.lower() in AIUEO_R)
-            ):
+            elif (lprefix in ("th", "dh")) and lch in AIUEO_R_SET:
                 obuf_r2r = onset_e_r
-                if ch.lower() in AUO_R:
+                if lch in AUO_R_SET:
                     obuf_r2r += small_y_r + ch
                 else:
                     obuf_r2r += small_r + ch
                 prefix = ""
                 continue
-            elif (
-                (prefix.lower() in (T_R + W_R, D_R + W_R))
-                and ch
-                and (ch.lower() in AIUEO_R)
-            ) or (
-                (prefix.lower() in (T_R + APOSTROPHE_A, D_R + APOSTROPHE_A))
-                and (ch.lower() == U_R)
+            elif ((lprefix in ("tw", "dw")) and lch in AIUEO_R_SET) or (
+                (lprefix in ("t'", "d'")) and (lch == "u")
             ):
                 obuf_r2r = onset_o_r + small_r + ch
                 prefix = ""
                 continue
-            elif (
-                (prefix.lower() in (T_R + APOSTROPHE_A, D_R + APOSTROPHE_A))
-                and (ch.lower() == I_R)
-            ) or (
+            elif ((lprefix in ("t'", "d'")) and (lch == "i")) or (
                 (
-                    prefix.lower()
+                    lprefix
                     in (
-                        T_R + APOSTROPHE_A + Y_R,
-                        D_R + APOSTROPHE_A + Y_R,
+                        "t'y",
+                        "d'y",
                     )
                 )
-                and (ch.lower() == U_R)
+                and (lch == "u")
             ):
                 obuf_r2r = onset_e_r + small_r + prefix[2:] + ch
                 prefix = ""
                 continue
-            elif (prefix.lower() == N_R) and (ch.lower() in (N_R, APOSTROPHE_A)):
-                obuf_r2r = onset_r + APOSTROPHE_A
+            elif (lprefix == "n") and (lch in ("n", "'")):
+                obuf_r2r = onset_r + "'"
                 prefix = ""
                 continue
-            elif (prefix.lower() == N_R) and (
-                (not ch)
-                or (
-                    (ch.lower() not in AIUEO_R)
-                    and (ch.lower() not in (N_R, APOSTROPHE_A))
-                )
+            elif (lprefix == "n") and (
+                (not ch) or ((lch not in AIUEO_R_SET) and (lch not in ("n", "'")))
             ):
-                obuf_r2r = onset_r + APOSTROPHE_A
+                obuf_r2r = onset_r + "'"
                 prefix = ""
                 ibuf_r2r = ch + ibuf_r2r
                 continue
             elif (
-                ((prefix.lower() == Y_R) and (ch.lower() == I_R))
-                or ((prefix.lower() == W_R) and (ch.lower() == U_R))
-                or ((prefix.lower() == W_R + H_R) and (ch.lower() == U_R))
+                ((lprefix == "y") and (lch == "i"))
+                or ((lprefix == "w") and (lch == "u"))
+                or ((lprefix == "wh") and (lch == "u"))
             ):
                 obuf_r2r = ch
                 prefix = ""
                 continue
-            elif (prefix.lower() == Y_R) and (ch.lower() == E_R):
-                obuf_r2r = cased(I_R) + small_r + ch
+            elif (lprefix == "y") and (lch == "e"):
+                obuf_r2r = cased("i") + small_r + ch
                 prefix = ""
                 continue
-            elif (prefix.lower() == W_R) and (ch.lower() in (I_R, E_R)):
-                obuf_r2r = cased(U_R) + small_r + ch
+            elif (lprefix == "w") and (lch in ("i", "e")):
+                obuf_r2r = cased("u") + small_r + ch
                 prefix = ""
                 continue
-            elif (
-                (prefix.lower() == W_R + H_R)
-                and ch
-                and (ch.lower() in AIUEO_R)
-                and (ch.lower() != U_R)
-            ):
+            elif (lprefix == "wh") and lch in AIUEO_R_SET and (lch != "u"):
                 obuf_r2r = onset_r + small_r + ch
                 prefix = ""
                 continue
@@ -1023,11 +871,11 @@ def smoketest():
     ba bi bu be bo bya byi byu bye byo
     pa pi pu pe po pya pyi pyu pye pyo
 
-     n       a-
-    n'       ^
-    nn       kka
-    xn       xxa
-    ln       lla
+           n        a-
+          n'         ^
+          nn       kka
+          xn       xxa
+          ln       lla
 
       wha  whi  whu  whe  who
       kwa  kwi  kwu  kwe  kwo
@@ -1080,11 +928,11 @@ def smoketest():
     ﾊﾞ  ﾋﾞ  ﾌﾞ  ﾍﾞ  ﾎﾞ  ﾋﾞｬ ﾋﾞｨ ﾋﾞｭ ﾋﾞｪ ﾋﾞｮ
     ﾊﾟ  ﾋﾟ  ﾌﾟ  ﾍﾟ  ﾎﾟ  ﾋﾟｬ ﾋﾟｨ ﾋﾟｭ ﾋﾟｪ ﾋﾟｮ
 
-      ﾝ      ｱｰ
-      ﾝ      ｰ
-      ﾝ      ｯｶ
-      ﾝ      ｯｧ
-      ﾝ      ｯｧ
+            ﾝ           ｱｰ
+            ﾝ           ｰ
+            ﾝ          ｯｶ
+            ﾝ          ｯｧ
+            ﾝ          ｯｧ
 
     ｳｧ  ｳｨ  ｳ   ｳｪ  ｳｫ
     ｸｧ  ｸｨ  ｸｩ  ｸｪ  ｸｫ
@@ -1270,11 +1118,11 @@ def smoketest():
             assert (
                 r2hs(ch) == PUNCT_K[PUNCT_A.index(ch.lower())]
             ), f"conversion failed for punctuation {ch}: got {r2hs(ch)}"
-        elif ch.lower() in AIUEO_R:
+        elif ch.lower() in AIUEO_R_SET:
             assert (
                 r2hs(ch) == AIUEO_K[AIUEO_R.index(ch.lower())]
             ), f"conversion failed for vowel {ch}: got {r2hs(ch)}"
-        elif ch.lower() == N_R:
+        elif ch.lower() == "n":
             assert (
                 r2hs(ch) == NN_K
             ), f"conversion failed for moraic {ch}: got {r2hs(ch)}"
