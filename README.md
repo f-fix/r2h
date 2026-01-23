@@ -60,7 +60,7 @@ Basic inputs that output a single character each:
        ma mi mu me mo        ﾏ  ﾐ  ﾑ  ﾒ  ﾓ
        ya    yu    yo        ﾔ     ﾕ     ﾖ
        ra ri ru re ro        ﾗ  ﾘ  ﾙ  ﾚ  ﾛ
-       wa          wo        ﾜ     ｳ     ｦ
+       wa          wo        ﾜ           ｦ
       xya   xyu   xyo        ｬ     ｭ     ｮ     (small versions of ya/yu/yo)
        xa xi xu xe xo        ｧ  ｨ  ｩ  ｪ  ｫ     (small versions of a/i/u/e/o)
             xtu                    ｯ           (small tsu)
