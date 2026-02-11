@@ -175,7 +175,8 @@ assert ALL_K == bytes(
 
 ALL_1_1_STARTS_R = (  # this is ordered according to the kana layout of the single-byte part of CP932
     [punct for punct in PUNCT_A]
-    + [WO_R, "x", XY_R, XTU_R, CHOUONPU_A, ""]
+    + [WO_R, "x", XY_R, XTU_R, CHOUONPU_A]
+    + [vowel for vowel in AIUEO_R]
     + [onset for onset in KSTNHMR_R if onset != "r"]
     + [
         "y",
@@ -190,11 +191,11 @@ ALL_1_1_STARTS_R = (  # this is ordered according to the kana layout of the sing
 
 def expand_1_1_starts(*starts):
     """
-    used to reduce the "ROM" size for simple 1:1 romaji syllable prefixes
+    used to reduce the "ROM" size for simple 1:1 romaji
     """
     expanded = []
     for start in starts:
-        if start == "" or start in XKSTNHMR_R:
+        if start in XKSTNHMR_R:
             for vowel in AIUEO_R:
                 expanded += [start + vowel]
         elif start in (XY_R, "y"):
@@ -203,9 +204,6 @@ def expand_1_1_starts(*starts):
         else:
             expanded += [start]
     return expanded
-
-
-ALL_1_1_R = expand_1_1_starts(*ALL_1_1_STARTS_R)
 
 
 def r2k_one_to_one_simple(*, ibuf, state, obuf, flags, getch):
@@ -823,7 +821,7 @@ def r2h(*, ibuf, state, obuf, flags, getch):
     return ch, ibuf, state, obuf, flags
 
 
-def r2hs(s):
+def r2hs(s, r2h=r2h):
     """
     convert romaji in the input string to halfwidth katakana. see `r2h()` for a list of supported conversions
     """
@@ -846,13 +844,12 @@ def r2hs(s):
 
 
 def smoketest():
-    assert r2hs("") == ""
     romaji_specimen = " ".join(
         """
   . [ ] , / wo xa xi xu xe xo xya xyu xyo xtu
   ^ a i u e o ka ki ku ke ko sa si su se so
   ta ti tu te to na ni nu ne no ha hi hu he ho ma
-  mi mu me mo ya yu yo ra ri ru re ro wa nn z; z:
+  mi mu me mo ya yu yo ra ri ru re ro wa n' z; z:
   """.split()
     )
     kana_specimen = " ".join(
@@ -863,44 +860,212 @@ def smoketest():
   ﾐ ﾑ ﾒ ﾓ ﾔ ﾕ ﾖ ﾗ ﾘ ﾙ ﾚ ﾛ ﾜ ﾝ ﾞ ﾟ
   """.split()
     )
-    assert (
-        r2hs(romaji_specimen) == kana_specimen
-    ), f"r2hs({repr(romaji_specimen)}) failed, expected: \n {repr(kana_specimen)}, but got:\n {repr(r2hs(romaji_specimen))}"
-    compact_romaji_specimen = ".[],/woxaxixuxexoxyaxyuxyoxtu^aiueokakikukekosasisusesotatitutetonaninunenohahihuhehomamimumemoyayuyorarirurerowannz;z:"
+    compact_romaji_specimen = ".[],/woxaxixuxexoxyaxyuxyoxtu^aiueokakikukekosasisusesotatitutetonaninunenohahihuhehomamimumemoyayuyorarirurerowan'z;z:"
     compact_kana_specimen = (
         "｡｢｣､･ｦｧｨｩｪｫｬｭｮｯｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝﾞﾟ"
     )
+    assert compact_romaji_specimen == "".join(romaji_specimen.split(" "))
+    assert compact_kana_specimen == "".join(kana_specimen.split(" "))
     assert (
-        r2hs(compact_romaji_specimen) == compact_kana_specimen
-    ), f"r2hs({repr(compact_romaji_specimen)}) failed, expected: \n {repr(compact_kana_specimen)}, but got:\n {repr(r2hs(compact_romaji_specimen))}"
-    assert r2hs(compact_romaji_specimen) == bytes(range(0xA1, 1 + 0xDF)).decode(
-        "cp932"
-    )  # single-byte kana portion of Shift JIS
-    assert r2hs("-") == "-"
-    assert r2hs("-123") == "-123"
-    assert r2hs("123-456") == "123-456"
-    assert r2hs("123-") == "123-"
-    assert r2hs("z/") == "･", f'assert {r2hs("z/")!r} == {"･"!r}'
-    assert r2hs(".") == "｡"
-    assert r2hs("[") == "｢"
-    assert r2hs("]") == "｣"
-    assert r2hs(",") == "､"
-    assert r2hs("/") == "･"
-    assert r2hs("^") == "ｰ"
-    assert r2hs("a-") == "ｱｰ"
-    assert r2hs("a^") == "ｱｰ"
-    assert r2hs("a--") == "ｱｰｰ"
-    assert r2hs("a^-") == "ｱｰｰ"
-    assert r2hs("a-^") == "ｱｰｰ"
-    assert r2hs("a---") == "ｱｰｰｰ"
-    assert r2hs("a--^") == "ｱｰｰｰ"
-    assert r2hs("a-^-") == "ｱｰｰｰ"
-    assert r2hs("a-^^") == "ｱｰｰｰ"
-    assert r2hs("a^--") == "ｱｰｰｰ"
-    assert r2hs("a^-^") == "ｱｰｰｰ"
-    assert r2hs("a^^-") == "ｱｰｰｰ"
-    assert r2hs("a^^^") == "ｱｰｰｰ"
-    assert r2hs("n'") == "ﾝ"
+        " ".join(ALL_1_1_STARTS_R)
+        == ". [ ] , / wo x xy xtu ^ a i u e o k s t n h m y r wa n' z; z:"
+    )
+    assert " ".join(expand_1_1_starts(*ALL_1_1_STARTS_R)) == romaji_specimen
+    # these tests only require basic 1:1 romaji-to-kana translation, without rewriting
+    for r2k_one_to_one_impl in (
+        r2k_one_to_one_simple,
+        r2k_one_to_one_fast,
+        r2k_one_to_one,
+        r2h,
+    ):
+        r2ks = lambda s: r2hs(s, r2h=r2k_one_to_one_impl)
+        assert r2ks("") == ""
+        assert (
+            " ".join([r2ks(romaji) for romaji in expand_1_1_starts(*ALL_1_1_STARTS_R)])
+            == kana_specimen
+        )
+        assert set(
+            r2ks(ch) == ALL_K[i]
+            for i, ch in enumerate(expand_1_1_starts(*ALL_1_1_STARTS_R))
+        ) == {True}
+        assert (
+            r2ks(romaji_specimen) == kana_specimen
+        ), f"r2ks({repr(romaji_specimen)}) failed, expected: \n {repr(kana_specimen)}, but got:\n {repr(r2ks(romaji_specimen))}"
+        assert (
+            r2ks(compact_romaji_specimen) == compact_kana_specimen
+        ), f"r2ks({repr(compact_romaji_specimen)}) failed, expected: \n {repr(compact_kana_specimen)}, but got:\n {repr(r2ks(compact_romaji_specimen))}"
+        assert r2ks(compact_romaji_specimen) == bytes(
+            range(0xA1, 1 + 0xDF)
+        ).decode(  # single-byte kana portion of Shift JIS
+            "cp932"
+        )
+        assert r2ks("-") == "-"
+        assert r2ks("-123") == "-123"
+        assert r2ks("123-456") == "123-456"
+        assert r2ks("123-") == "123-"
+        assert r2ks("z/") == "･"
+        assert r2ks(".") == "｡"
+        assert r2ks("[") == "｢"
+        assert r2ks("]") == "｣"
+        assert r2ks(",") == "､"
+        assert r2ks("/") == "･"
+        assert r2ks("^") == "ｰ"
+        assert r2ks("a-") == "ｱｰ"
+        assert r2ks("a^") == "ｱｰ"
+        assert r2ks("a--") == "ｱｰｰ"
+        assert r2ks("a^-") == "ｱｰｰ"
+        assert r2ks("a-^") == "ｱｰｰ"
+        assert r2ks("a---") == "ｱｰｰｰ"
+        assert r2ks("a--^") == "ｱｰｰｰ"
+        assert r2ks("a-^-") == "ｱｰｰｰ"
+        assert r2ks("a-^^") == "ｱｰｰｰ"
+        assert r2ks("a^--") == "ｱｰｰｰ"
+        assert r2ks("a^-^") == "ｱｰｰｰ"
+        assert r2ks("a^^-") == "ｱｰｰｰ"
+        assert r2ks("a^^^") == "ｱｰｰｰ"
+        assert r2ks("n'") == "ﾝ"
+        assert r2ks("tixyokore-to") == "ﾁｮｺﾚｰﾄ"
+        assert r2ks("Ra-men'") == "ﾗｰﾒﾝ"
+        assert r2ks("KIXYAN'TO/HAZ;I/MI-/RAHUZ;") == "ｷｬﾝﾄ･ﾊﾞｲ･ﾐｰ･ﾗﾌﾞ"
+        assert r2ks("hiz;xyu-texihuru/san'tez;-") == "ﾋﾞｭｰﾃｨﾌﾙ･ｻﾝﾃﾞｰ"
+        assert r2ks("Haz;rakuZ/Ohaz;ma") == "ﾊﾞﾗｸ･ｵﾊﾞﾏ"
+        assert r2ks("Haz:-sonaru/Kon'hiz:xyu-ta-") == "ﾊﾟｰｿﾅﾙ･ｺﾝﾋﾟｭｰﾀｰ"
+        assert r2ks("Taz;/Uz;xin'ti=Taz;Uz;xin'ti") == "ﾀﾞ･ｳﾞｨﾝﾁ=ﾀﾞｳﾞｨﾝﾁ"
+        assert r2ks("UZ;XARISU") == "ｳﾞｧﾘｽ"
+        assert r2ks("I-SU") == "ｲｰｽ"
+        assert r2ks("I^su") == "ｲｰｽ"
+        assert r2ks("a-123") == "ｱｰ123"
+        assert r2ks("az-123") == "ｱ-123"
+        assert r2ks("\b") == "\b"
+        assert r2ks("\x7f") == "\x7f"
+        assert r2ks("a\b-") == "ｱ\b-"
+        assert r2ks("a\x7f-") == "ｱ\x7f-"
+        assert r2ks("a -") == "ｱ -"
+        assert r2ks("a \b-") == "ｱ \bｰ"
+        assert r2ks("a \x7f-") == "ｱ \x7fｰ"
+        assert r2ks("a\n\b-") == "ｱ\n\b-"
+        assert r2ks("a\r\x7f-") == "ｱ\r\x7f-"
+        assert r2ks("k\ba\b-") == "ｱ\b-"
+        assert r2ks("k\ba\x7f-") == "ｱ\x7f-"
+        assert r2ks("k\ba -") == "ｱ -"
+        assert r2ks("k\ba \b-") == "ｱ \bｰ"
+        assert r2ks("k\ba \x7f-") == "ｱ \x7fｰ"
+        assert r2ks("ak\b\b-") == "ｱ\b-"
+        assert r2ks("ak\x7fk\x7f-") == "ｱｰ"
+        assert r2ks("a k\b-") == "ｱ -"
+        assert r2ks("a k\b\b-") == "ｱ \bｰ"
+        assert r2ks("a k\x7f\x7f-") == "ｱ \x7fｰ"
+        assert r2ks("k\ba\bk\b-") == "ｱ\b-"
+        assert r2ks("k\ba\x7fk\x7f-") == "ｱ\x7f-"
+        assert r2ks("k\ba k\b-") == "ｱ -"
+        assert r2ks("k\ba \bk\b-") == "ｱ \bｰ"
+        assert r2ks("k\ba \x7fk\x7f-") == "ｱ \x7fｰ"
+        assert r2ks("ki") == "ｷ"
+        assert r2ks("kixya") == "ｷｬ"
+        assert r2ks("kixyu") == "ｷｭ"
+        assert r2ks("ya") == "ﾔ"
+        assert r2ks("ki\b") == "ｷ\b"
+        assert r2ks("kixya\b") == "ｷｬ\b"
+        assert r2ks("kixyu\b") == "ｷｭ\b"
+        assert r2ks("ya\b") == "ﾔ\b"
+        assert r2ks("\bki") == "\bｷ"
+        assert r2ks("\bkixya") == "\bｷｬ"
+        assert r2ks("\bkixyu") == "\bｷｭ"
+        assert r2ks("\bya") == "\bﾔ"
+        assert r2ks("\bki\b") == "\bｷ\b"
+        assert r2ks("\bkixya\b") == "\bｷｬ\b"
+        assert r2ks("\bkixyu\b") == "\bｷｭ\b"
+        assert r2ks("\bya\b") == "\bﾔ\b"
+        assert r2ks("k\bi") == "ｲ"
+        assert r2ks("k\bya") == "ﾔ"
+        assert r2ks("kixy\ba") == "ｷｧ"
+        assert r2ks("k\byu") == "ﾕ"
+        assert r2ks("kixy\bu") == "ｷｩ"
+        assert r2ks("kixy\bya") == "ｷｬ"
+        assert r2ks("kixy\byu") == "ｷｭ"
+        assert r2ks("kixy\b\ba") == "ｷｱ"
+        assert r2ks("kixy\b\bu") == "ｷｳ"
+        assert r2ks("kixy\b\bya") == "ｷﾔ"
+        assert r2ks("kixy\b\byu") == "ｷﾕ"
+        assert r2ks("ﾌ-") == "ﾌｰ"
+        assert r2ks("hu-") == "ﾌｰ"
+        assert r2ks("h\b-") == "-"
+        assert r2ks("h\b-") == "-"
+        assert r2ks("hux\bu") == "ﾌｳ"
+        assert r2ks("hux\bu") == "ﾌｳ"
+        assert r2ks("h\bhuxyahux\byuhuxy\byohux\b\bhuxy\b\b-") == "ﾌｬﾌﾕﾌｮﾌ\bﾌｰ"
+        assert r2ks("ku") == "ｸ"
+        assert r2ks("k\bu") == "ｳ"
+        assert r2ks("kuxu") == "ｸｩ"
+        assert r2ks("kux\bu") == "ｸｳ"
+        assert r2ks("kon'nitiha") == "ｺﾝﾆﾁﾊ"
+        assert r2ks("aaiiuueeoo") == "ｱｱｲｲｳｳｴｴｵｵ"
+        assert r2ks("a-i-u-e-o-") == "ｱｰｲｰｳｰｴｰｵｰ"
+        assert r2ks("xtuuxaxtuuxixtuuxtuuxextuuxo") == "ｯｳｧｯｳｨｯｳｯｳｪｯｳｫ"
+        assert r2ks("xtuuz;xaxtuuz;xixtuuz;xtuuz;xextuuz;xo") == "ｯｳﾞｧｯｳﾞｨｯｳﾞｯｳﾞｪｯｳﾞｫ"
+        assert r2ks("xtutixyaxtutixixtutixyuxtutixextutixyo") == "ｯﾁｬｯﾁｨｯﾁｭｯﾁｪｯﾁｮ"
+        assert r2ks("xtuhuxaxtuhuxixtuhuxtuhuxextuhuxo") == "ｯﾌｧｯﾌｨｯﾌｯﾌｪｯﾌｫ"
+        assert r2ks("xtuhaz;xtuhiz;xtuhuz;xtuhez;xtuhoz;") == "ｯﾊﾞｯﾋﾞｯﾌﾞｯﾍﾞｯﾎﾞ"
+        assert (
+            r2ks("xtuhuz:xaxtuhuz:xixtuhuz:xuxtuhuz:xextuhuz:xo")
+            == "ｯﾌﾟｧｯﾌﾟｨｯﾌﾟｩｯﾌﾟｪｯﾌﾟｫ"
+        )
+        assert (
+            r2ks("xtuhiz;xyaxtuhiz;xixtuhiz;xyuxtuhiz;xextuhiz;xyo")
+            == "ｯﾋﾞｬｯﾋﾞｨｯﾋﾞｭｯﾋﾞｪｯﾋﾞｮ"
+        )
+        assert (
+            r2ks("xtuhiz:xyaxtuhiz:xixtuhiz:xyuxtuhiz:xextuhiz:xyo")
+            == "ｯﾋﾟｬｯﾋﾟｨｯﾋﾟｭｯﾋﾟｪｯﾋﾟｮ"
+        )
+        assert (
+            r2ks("xtuhuz:xaxtuhuz:xixtuhuz:xuxtuhuz:xextuhuz:xo")
+            == "ｯﾌﾟｧｯﾌﾟｨｯﾌﾟｩｯﾌﾟｪｯﾌﾟｫ"
+        )
+        assert r2ks("xtuyaxtuixtuyuxtuixextuyo") == "ｯﾔｯｲｯﾕｯｲｪｯﾖ"
+        assert r2ks("yaaiiyuuixeeyoo") == "ﾔｱｲｲﾕｳｲｪｴﾖｵ"
+        assert r2ks("ya-i-yu-ixe-yo-") == "ﾔｰｲｰﾕｰｲｪｰﾖｰ"
+        assert (
+            r2ks(
+                """
+                    huxa    huxi       hu    huxe     huxo
+                   huxya            huxyu            huxyo
+                    huxa    huxi     huxu    huxe     huxo
+                 xtuhuxa xtuhuxi    xtuhu xtuhuxe  xtuhuxo
+                xtuhuxya         xtuhuxyu         xtuhuxyo
+                 xtuhuxa xtuhuxi  xtuhuxu xtuhuxe  xtuhuxo
+                """
+            ).split()
+            == """
+             ﾌｧ   ﾌｨ   ﾌ   ﾌｪ   ﾌｫ
+             ﾌｬ        ﾌｭ       ﾌｮ
+             ﾌｧ   ﾌｨ   ﾌｩ  ﾌｪ   ﾌｫ
+            ｯﾌｧ  ｯﾌｨ  ｯﾌ  ｯﾌｪ  ｯﾌｫ
+            ｯﾌｬ       ｯﾌｭ      ｯﾌｮ
+            ｯﾌｧ  ｯﾌｨ  ｯﾌｩ ｯﾌｪ  ｯﾌｫ
+            """.split()
+        )
+        assert (
+            r2ks(
+                """
+                    uz;xa    uz;xi        uz;    uz;xe     uz;xo
+                   uz;xya    uz;xi     uz;xyu    uz;xe    uz;xyo
+                 xtuuz;xa xtuuz;xi     xtuuz; xtuuz;xe  xtuuz;xo
+                xtuuz;xya xtuuz;xi  xtuuz;xyu xtuuz;xe xtuuz;xyo
+                """
+            ).split()
+            == """
+             ｳﾞｧ  ｳﾞｨ  ｳﾞ   ｳﾞｪ  ｳﾞｫ
+             ｳﾞｬ  ｳﾞｨ  ｳﾞｭ  ｳﾞｪ  ｳﾞｮ
+            ｯｳﾞｧ ｯｳﾞｨ ｯｳﾞ  ｯｳﾞｪ ｯｳﾞｫ
+            ｯｳﾞｬ ｯｳﾞｨ ｯｳﾞｭ ｯｳﾞｪ ｯｳﾞｮ
+            """.split()
+        )
+        assert (
+            r2ks("nanixyanan'yanan'nixyan'n'n'n'xtun'xtun'n'n'n'n'~")
+            == "ﾅﾆｬﾅﾝﾔﾅﾝﾆｬﾝﾝﾝﾝｯﾝｯﾝﾝﾝﾝﾝ~"
+        )
+    # tests from here onward may require romaji-to-romaji rewriting
     for romaji, expected_kana in dict(
         aiueoyayuyo="ｱｲｳｴｵﾔﾕﾖ",
         _ye="ｲｪ",
@@ -992,8 +1157,8 @@ def smoketest():
     ).items():
         romaji = "'".join(romaji.lstrip("_").split("_"))
         assert (
-            r2hs(romaji) == expected_kana
-        ), f"r2hs({repr(romaji)}) failed, expected: \n {repr(expected_kana)}, but got:\n {repr(r2hs(romaji))}"
+            r2ks(romaji) == expected_kana
+        ), f"r2ks({repr(romaji)}) failed, expected: \n {repr(expected_kana)}, but got:\n {repr(r2ks(romaji))}"
     long_romaji_specimen = """
      a  i  u  e  o  ya  yi  yu  ye  yo
     ka ki ku ke ko kya kyi kyu kye kyo
@@ -1115,7 +1280,6 @@ def smoketest():
     assert r2hs("cyocore-to") == "ﾁｮｺﾚｰﾄ"
     assert r2hs("chokore-to") == "ﾁｮｺﾚｰﾄ"
     assert r2hs("tyokore-to") == "ﾁｮｺﾚｰﾄ"
-    assert r2hs("tixyokore-to") == "ﾁｮｺﾚｰﾄ"
     assert r2hs("chilyokore-to") == "ﾁｮｺﾚｰﾄ"
     assert r2hs("KYANTO/BAI/MI-/RABU") == "ｷｬﾝﾄ･ﾊﾞｲ･ﾐｰ･ﾗﾌﾞ"
     assert r2hs("byu-t'ifuru/sande-") == "ﾋﾞｭｰﾃｨﾌﾙ･ｻﾝﾃﾞｰ"
@@ -1272,7 +1436,6 @@ def smoketest():
             ), f"conversion failed for chouonpu {ch}: got {r2hs(ch)}"
         else:
             assert r2hs(ch) == ch, f"conversion failed for {ch}: got {r2hs(ch)}"
-    assert set(r2hs(ch) == ALL_K[i] for i, ch in enumerate(ALL_1_1_R)) == {True}
 
 
 smoketest()
