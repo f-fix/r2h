@@ -59,9 +59,12 @@ CHOUONPU_A = "^"
 CHOUONPU_K = "ｰ"
 HYPHEN_MINUS_A = "-"
 WO_K = "ｦ"
+WO_R = "wo"
 X_K = "ｧｨｩｪｫ"
 XYAYUYO_K = "ｬｭｮ"
+XY_R = "xy"
 XTU_K = "ｯ"
+XTU_R = "xtu"
 AIUEO_R = "aiueo"
 AIUEO_R_SET = frozenset(AIUEO_R)
 AIUEO_K = "ｱｲｳｴｵ"
@@ -82,7 +85,9 @@ R_K = "ﾗﾘﾙﾚﾛ"
 XKSTNHMR_R = "x" + KSTNHMR_R
 XKSTNHMR_K = [X_K, K_K, S_K, T_K, N_K, H_K, M_K, R_K]
 WA_K = "ﾜ"
+WA_R = "wa"
 NN_K = "ﾝ"
+NN_R = "n'"
 DAKUTEN_K = "ﾞ"
 DAKUTEN_R = "z;"
 HANDAKUTEN_K = "ﾟ"
@@ -141,7 +146,7 @@ HAS_HANDAKUTEN_R_SET = frozenset("p")
 ALL_R = AIUEO_R + XKSTNHMR_R + YWZ_R + EXTRA_LEAD_R2R_R
 assert sorted(ALL_R) == [chr(cc) for cc in range(ord("a"), 1 + ord("z"))]
 
-ALL_K = (
+ALL_K = (  # this is ordered according to the kana layout of the single-byte part of CP932
     PUNCT_K
     + WO_K
     + X_K
@@ -162,11 +167,45 @@ ALL_K = (
     + DAKUTEN_K
     + HANDAKUTEN_K
 )
-assert ALL_K == bytes(range(0xA1, 0xE0)).decode(
+assert ALL_K == bytes(
+    range(0xA1, 0xE0)
+).decode(  # Ensure all the halfwidth kana are represented and each only once, and in encoded order
     "cp932"
-)  # Ensure all the halfwidth kana are represented and each only once, and in encoded order
+)
 
-ALL_1_1_R = ". [ ] , / wo xa xi xu xe xo xya xyu xyo xtu ^ a i u e o ka ki ku ke ko sa si su se so ta ti tu te to na ni nu ne no ha hi hu he ho ma mi mu me mo ya yu yo ra ri ru re ro wa n' z; z:".split()
+ALL_1_1_STARTS_R = (  # this is ordered according to the kana layout of the single-byte part of CP932
+    [punct for punct in PUNCT_A]
+    + [WO_R, "x", XY_R, XTU_R, CHOUONPU_A, ""]
+    + [onset for onset in KSTNHMR_R if onset != "r"]
+    + [
+        "y",
+        "r",
+        WA_R,
+        NN_R,
+        DAKUTEN_R,
+        HANDAKUTEN_R,
+    ]
+)
+
+
+def expand_1_1_starts(*starts):
+    """
+    used to reduce the "ROM" size for simple 1:1 romaji syllable prefixes
+    """
+    expanded = []
+    for start in starts:
+        if start == "" or start in XKSTNHMR_R:
+            for vowel in AIUEO_R:
+                expanded += [start + vowel]
+        elif start in (XY_R, "y"):
+            for vowel in AUO_R:
+                expanded += [start + vowel]
+        else:
+            expanded += [start]
+    return expanded
+
+
+ALL_1_1_R = expand_1_1_starts(*ALL_1_1_STARTS_R)
 
 
 def r2k_one_to_one_simple(*, ibuf, state, obuf, flags, getch):
@@ -240,20 +279,31 @@ def r2k_one_to_one_simple(*, ibuf, state, obuf, flags, getch):
                     flags = (flags & 0x7F) << 1
                     return ch, ibuf, state, obuf, flags
             nstate = ""
-            for i, romaji in enumerate(ALL_1_1_R):
-                if (state + ch).lower() == romaji:
-                    ch = ALL_K[i]
-                    state = ""
-                    nstate = ""
+            lstate, lch = state.lower(), ch.lower()
+            lstate_ch = lstate + lch
+            cc = 0xA1
+            matched = False
+            for start in ALL_1_1_STARTS_R:
+                for romaji in expand_1_1_starts(start):
+                    if lstate_ch == romaji:
+                        ch = ALL_K[cc - 0xA1]  # a.k.a. bytes([cc]).decode("cp932")
+                        state = ""
+                        nstate = ""
+                        matched = True
+                        break
+                    elif ch and romaji.startswith(lstate_ch):
+                        nstate = state + ch
+                    cc += 1
+                if matched:
                     break
-                elif ch and romaji.startswith((state + ch).lower()):
-                    nstate = state + ch
             if nstate:
                 state = nstate
                 continue
-            if (state.lower() == "z") and (ch == MIDDOT_A):
+            elif matched:
+                pass
+            elif (lstate == "z") and (ch == MIDDOT_A):
                 ch, state = MIDDOT_K, ""
-            elif (state.lower() == "z") and (ch == HYPHEN_MINUS_A):
+            elif (lstate == "z") and (ch == HYPHEN_MINUS_A):
                 flags &= 0x7F
                 state = ""
             elif (ch == HYPHEN_MINUS_A) and (flags & 0x80):
@@ -415,9 +465,6 @@ UNUSED_R2R = chr(
     0x10FFFF
 )  # used as a marker for unused/filler slots in various character buffers
 
-DEBUG_REWRITER = False  # or True  # Uncomment ` or True` to debug r2hs
-debug_original, debug_rewritten = "", ""
-
 
 def r2h(*, ibuf, state, obuf, flags, getch):
     """
@@ -531,9 +578,6 @@ def r2h(*, ibuf, state, obuf, flags, getch):
                 ch, ibuf_r2r = ibuf_r2r[:1], ibuf_r2r[1:]
             else:
                 ch = getch()
-                if DEBUG_REWRITER:
-                    global debug_original
-                    debug_original += ch
             lch = ch.lower()
             lprefix = prefix.lower()
             lprefix_ch = lprefix + lch
@@ -752,9 +796,6 @@ def r2h(*, ibuf, state, obuf, flags, getch):
                 prefix = ""
                 continue
             break
-        if DEBUG_REWRITER:
-            global debug_rewritten
-            debug_rewritten += ch
         return ch
 
     ch, ibuf_r2k, state_r2k, obuf_r2k, flags_r2k = r2k_one_to_one(
@@ -793,10 +834,6 @@ def r2hs(s):
         ch, s = s[:1], s[1:]
         return ch
 
-    if DEBUG_REWRITER:
-        global debug_original, debug_rewritten
-        debug_original, debug_rewritten = "", ""
-
     ibuf, state, obuf, flags = "", "", "", 0
     while True:
         ch, ibuf, state, obuf, flags = r2h(
@@ -805,13 +842,6 @@ def r2hs(s):
         o += ch
         if ch == "":
             break
-    if DEBUG_REWRITER:
-        print(f"debug_original ", debug_original)
-        if debug_original == debug_rewritten:
-            print("(debug_rewritten unchanged)")
-        else:
-            print(f"debug_rewritten", debug_rewritten)
-        debug_original, debug_rewritten = "", ""
     return o
 
 
