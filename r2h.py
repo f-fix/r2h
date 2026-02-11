@@ -44,6 +44,11 @@ some of the differences from some other romaji input methods etc.:
 
 """
 
+R2K_ONE_TO_ONE_IMPLEMENTATION = (  # either "fast" or "simple" (constant, ignored after time of import)
+    "simple"
+)
+
+
 BACKSPACE_A = "\b"
 RUBOUT_A = "\x7f"
 PUNCT_A = ".[],/"
@@ -159,12 +164,116 @@ ALL_K = (
 )
 assert ALL_K == bytes(range(0xA1, 0xE0)).decode(
     "cp932"
-)  # Ensure all the halfwidth kana are represented and each only once
+)  # Ensure all the halfwidth kana are represented and each only once, and in encoded order
+
+ALL_1_1_R = ". [ ] , / wo xa xi xu xe xo xya xyu xyo xtu ^ a i u e o ka ki ku ke ko sa si su se so ta ti tu te to na ni nu ne no ha hi hu he ho ma mi mu me mo ya yu yo ra ri ru re ro wa n' z; z:".split()
 
 
-def r2k_one_to_one(*, ibuf, state, obuf, flags, getch):
+def r2k_one_to_one_simple(*, ibuf, state, obuf, flags, getch):
     """
     convert subset of romaji to halfwidth katakana.
+    [simpler but slower version]
+
+    - ibuf is an input stuffing buffer used when retrying characters from failed conversions; initially it should be an empty string.
+    - state is the current state of the input conversion; initially it should be "".
+    - obuf is a buffer for accumulating characters to be output; initially it should be an empty string.
+    - flags is an integer containing conversion state flags relating to backspace processing; initially it should be 0.
+    - getch is a callable closure or function that returns a single character from the input stream when called, blocking if needed; returning an empty sttring indicates the input source is exhausted (EOF).
+
+    the return values are ch, ibuf, state, obuf, flags.
+    - ch is the next output character, or an empty string to indicate that the input source is exhausted (EOF) and all input fully processed.
+    - the returned ibuf, state, obuf, and flags should be passed back in on a subsequent call associated with the same input source / getch.
+
+    this is the second phase with no support for romaji-to-romaji rewriting or alternate spellings.
+
+    this only supports a romaji subset that maps 1:1 to halfwidth kana characters.
+
+    this only supports one spelling for each character in the halfwidth kana character set.
+
+    supported inputs:
+
+    ```
+        a  i  u  e  o        ｱ  ｲ  ｳ  ｴ  ｵ
+       ka ki ku ke ko        ｶ  ｷ  ｸ  ｹ  ｺ
+       sa si su se so        ｻ  ｼ  ｽ  ｾ  ｿ
+       ta ti tu te to        ﾀ  ﾁ  ﾂ  ﾃ  ﾄ
+       na ni nu ne no        ﾅ  ﾆ  ﾇ  ﾈ  ﾉ
+       ha hi hu he ho        ﾊ  ﾋ  ﾌ  ﾍ  ﾎ
+       ma mi mu me mo        ﾏ  ﾐ  ﾑ  ﾒ  ﾓ
+       ya    yu    yo        ﾔ     ﾕ     ﾖ
+       ra ri ru re ro        ﾗ  ﾘ  ﾙ  ﾚ  ﾛ
+       wa          wo        ﾜ           ｦ
+      xya   xyu   xyo        ｬ     ｭ     ｮ     (small versions of ya/yu/yo)
+       xa xi xu xe xo        ｧ  ｨ  ｩ  ｪ  ｫ     (small versions of a/i/u/e/o)
+            xtu                    ｯ           (small tsu)
+             n'                    ﾝ           (moraic n)
+
+       ^                     ｰ                 (chouonpu)
+       -                     ｰ or -            (contextual: chouonpu after kana, hyphen-minus elsewhere)
+       z;                    ﾞ                 (dakuten)
+       z:                    ﾟ                 (handakuten)
+       z-                    -                 (hyphen-minus)
+       z/ or /               ･                 (middle dot; exception to the only-one-spelling rule)
+       .                     ｡                 (ideographic full stop)
+       ,                     ､                 (ideographic comma)
+       [                     ｢                 (left corner bracket)
+       ]                     ｣                 (right corner bracket)
+
+    ```
+
+    ASCII backspace (Ctrl-H, 0x08) and Delete/Rubout (Ctrl-?, 0x7F) can erase parts of in-progress conversions.
+
+    """
+    while True:
+        if obuf:
+            ch, obuf = obuf[:1], obuf[1:]
+        else:
+            if ibuf:
+                ch, ibuf = ibuf[:1], ibuf[1:]
+            else:
+                ch = getch()
+            if ch in (BACKSPACE_A, RUBOUT_A):
+                if state:
+                    state = state[:-1]
+                    continue
+                else:
+                    flags = (flags & 0x7F) << 1
+                    return ch, ibuf, state, obuf, flags
+            nstate = ""
+            for i, romaji in enumerate(ALL_1_1_R):
+                if (state + ch).lower() == romaji:
+                    ch = ALL_K[i]
+                    state = ""
+                    nstate = ""
+                    break
+                elif ch and romaji.startswith((state + ch).lower()):
+                    nstate = state + ch
+            if nstate:
+                state = nstate
+                continue
+            if (state.lower() == "z") and (ch == MIDDOT_A):
+                ch, state = MIDDOT_K, ""
+            elif (state.lower() == "z") and (ch == HYPHEN_MINUS_A):
+                flags &= 0x7F
+                state = ""
+            elif (ch == HYPHEN_MINUS_A) and (flags & 0x80):
+                ch = CHOUONPU_K
+            if state:
+                obuf += state[:1]
+                ibuf += state[1:] + ch
+                state = ""
+                ch, obuf = obuf[:1], obuf[1:]
+        if ch and ord(ch) < ord(" ") and ch != BACKSPACE_A:
+            flags = 0
+        else:
+            flags = (0x80 if (ch and (ch in ALL_K)) else 0) | (flags >> 1)
+        return ch, ibuf, state, obuf, flags
+
+
+def r2k_one_to_one_fast(*, ibuf, state, obuf, flags, getch):
+    """
+    convert subset of romaji to halfwidth katakana.
+    [faster but larger version]
 
     - ibuf is an input stuffing buffer used when retrying characters from failed conversions; initially it should be an empty string.
     - state is the current state of the input conversion; initially it should be "".
@@ -249,32 +358,30 @@ def r2k_one_to_one(*, ibuf, state, obuf, flags, getch):
             elif state.lower() == "y" and (auo_idx >= 0):
                 ch, state = YAYUYO_K[auo_idx], ""
                 aiueo_idx = -1
-            elif state.lower() == "w" and (aiueo_idx >= 0):
-                if ch.lower() == "a":
-                    ch = WA_K
-                    state = ""
-                    aiueo_idx = -1
-                elif ch.lower() == "o":
-                    ch = WO_K
-                    state = ""
-                    aiueo_idx = -1
+            elif state.lower() == "w" and ch.lower() == "a":
+                ch = WA_K
+                state = ""
+                aiueo_idx = -1
+            elif state.lower() == "w" and ch.lower() == "o":
+                ch = WO_K
+                state = ""
+                aiueo_idx = -1
             elif (state.lower() == "x") and ch.lower() in ("y", "t"):
                 state += ch
                 continue
             elif state.lower() == "xt" and ch.lower() == "u":
                 ch, state = XTU_K, ""
                 aiueo_idx = -1
-            elif state.lower() == "z":
-                if (state + ch).lower() == HANDAKUTEN_R:
-                    ch, state = HANDAKUTEN_K, ""
-                    iueo_idx, punct_idx = -1, -1
-                elif (state + ch).lower() == DAKUTEN_R:
-                    ch, state = DAKUTEN_K, ""
-                elif ch == MIDDOT_A:
-                    ch, state = MIDDOT_K, ""
-                elif ch == HYPHEN_MINUS_A:
-                    flags &= 0x7F
-                    state = ""
+            elif (state + ch).lower() == HANDAKUTEN_R:
+                ch, state = HANDAKUTEN_K, ""
+                iueo_idx, punct_idx = -1, -1
+            elif (state + ch).lower() == DAKUTEN_R:
+                ch, state = DAKUTEN_K, ""
+            elif (state.lower() == "z") and (ch == MIDDOT_A):
+                ch, state = MIDDOT_K, ""
+            elif (state.lower() == "z") and (ch == HYPHEN_MINUS_A):
+                flags &= 0x7F
+                state = ""
             if state:
                 obuf += state[:1]
                 ibuf += state[1:] + ch
@@ -299,6 +406,10 @@ def r2k_one_to_one(*, ibuf, state, obuf, flags, getch):
             flags = (0x80 if (ch and (ch in ALL_K)) else 0) | (flags >> 1)
         return ch, ibuf, state, obuf, flags
 
+
+r2k_one_to_one = dict(fast=r2k_one_to_one_fast, simple=r2k_one_to_one_simple)[
+    R2K_ONE_TO_ONE_IMPLEMENTATION
+]
 
 UNUSED_R2R = chr(
     0x10FFFF
@@ -498,8 +609,10 @@ def r2h(*, ibuf, state, obuf, flags, getch):
                 obuf_r2r = onset_r + voicing_r
                 prefix = ""
                 continue
-            elif ((lprefix == "v") and (lch in AIUEO_R_SET) and (lch != "u")) or (
-                (lprefix == "vy") and (lch in ("i", "e"))
+            elif (
+                ((lprefix == "v") and (lch in AIUEO_R_SET) and (lch != "u"))
+                or ((lprefix == "vy") and (lch in ("i", "e")))
+                or ((lprefix == "wh") and lch in AIUEO_R_SET and (lch != "u"))
             ):
                 obuf_r2r = onset_r + voicing_r + small_r + ch
                 prefix = ""
@@ -514,18 +627,21 @@ def r2h(*, ibuf, state, obuf, flags, getch):
                 or ((lprefix == "w") and (lch in ("a", "o")))
                 or ((lprefix == "q") and (lch == "u"))
                 or ((lprefix in ("ch", "cy")) and (lch == "i"))
+                or ((lprefix in ("sh", "j")) and (lch == "i"))
             ):
                 obuf_r2r = onset_ch_r
                 if lprefix == "cy":
                     obuf_r2r += small_r + ch
                 prefix = ""
                 continue
-            elif (lprefix in ONSET_I_AIUEO_R2R_R_SET) and (lch in AIUEO_R_SET):
+            elif (lprefix in ONSET_I_AIUEO_R2R_R_SET) and (lch in AUO_R_SET):
                 obuf_r2r = onset_i_r
-                if lch in AUO_R_SET:
-                    obuf_r2r += small_r + prefix[1:] + ch
-                else:
-                    obuf_r2r += small_r + ch
+                obuf_r2r += small_r + prefix[1:] + ch
+                prefix = ""
+                continue
+            elif (lprefix in ONSET_I_AIUEO_R2R_R_SET) and (lch in ("i", "e")):
+                obuf_r2r = onset_i_r
+                obuf_r2r += small_r + ch
                 prefix = ""
                 continue
             elif (
@@ -548,11 +664,16 @@ def r2h(*, ibuf, state, obuf, flags, getch):
                 obuf_r2r = onset_u_r + small_r + prefix[1:] + ch
                 prefix = ""
                 continue
-            elif (lprefix in ("ch", "cy")) and (lch in AUO_R_SET):
+            elif ((lprefix in ("ch", "cy")) and (lch in AUO_R_SET)) or (
+                (lprefix in ("sh", "sy", "j")) and (lch in AUO_R_SET)
+            ):
                 obuf_r2r = onset_i_r + small_y_r + ch
                 prefix = ""
                 continue
-            elif (lprefix in ("ch", "cy")) and (lch == "e"):
+            elif ((lprefix in ("ch", "cy")) and (lch == "e")) or (
+                (lprefix in ("sh", "sy", "j"))
+                and ((lch == "i" and lprefix == "sy") or lch == "e")
+            ):
                 obuf_r2r = onset_i_r + small_r + ch
                 prefix = ""
                 continue
@@ -568,21 +689,14 @@ def r2h(*, ibuf, state, obuf, flags, getch):
                 obuf_r2r = prefix + ch
                 prefix = ""
                 continue
-            elif (lprefix in ("sh", "sy", "j")) and lch in AIUEO_R_SET:
-                if lch == "i" and lprefix in ("sh", "j"):
-                    obuf_r2r = onset_ch_r
-                elif lch in AUO_R_SET:
-                    obuf_r2r = onset_i_r + small_y_r + ch
-                else:
-                    obuf_r2r = onset_i_r + small_r + ch
+            elif (lprefix in ("th", "dh")) and lch in AUO_R_SET:
+                obuf_r2r = onset_e_r
+                obuf_r2r += small_y_r + ch
                 prefix = ""
                 continue
-            elif (lprefix in ("th", "dh")) and lch in AIUEO_R_SET:
+            elif (lprefix in ("th", "dh")) and lch in ("i", "e"):
                 obuf_r2r = onset_e_r
-                if lch in AUO_R_SET:
-                    obuf_r2r += small_y_r + ch
-                else:
-                    obuf_r2r += small_r + ch
+                obuf_r2r += small_r + ch
                 prefix = ""
                 continue
             elif ((lprefix in ("tw", "dw")) and lch in AIUEO_R_SET) or (
@@ -629,10 +743,6 @@ def r2h(*, ibuf, state, obuf, flags, getch):
                 continue
             elif (lprefix == "w") and (lch in ("i", "e")):
                 obuf_r2r = cased("u") + small_r + ch
-                prefix = ""
-                continue
-            elif (lprefix == "wh") and lch in AIUEO_R_SET and (lch != "u"):
-                obuf_r2r = onset_r + small_r + ch
                 prefix = ""
                 continue
             if prefix:
@@ -740,7 +850,7 @@ def smoketest():
     assert r2hs("-123") == "-123"
     assert r2hs("123-456") == "123-456"
     assert r2hs("123-") == "123-"
-    assert r2hs("z/") == "･"
+    assert r2hs("z/") == "･", f'assert {r2hs("z/")!r} == {"･"!r}'
     assert r2hs(".") == "｡"
     assert r2hs("[") == "｢"
     assert r2hs("]") == "｣"
@@ -1132,6 +1242,7 @@ def smoketest():
             ), f"conversion failed for chouonpu {ch}: got {r2hs(ch)}"
         else:
             assert r2hs(ch) == ch, f"conversion failed for {ch}: got {r2hs(ch)}"
+    assert set(r2hs(ch) == ALL_K[i] for i, ch in enumerate(ALL_1_1_R)) == {True}
 
 
 smoketest()
